@@ -11,12 +11,9 @@
 #### deben estar en la misma carpeta que este script.     ####
 ##############################################################
 
-sleep 2
-
 ##############################################################
 ####                Para instalar mosquitto               ####
 ##############################################################
-#Para instalar mosquitto:
 
 sudo apt-get update -y
 sudo apt install -y mosquitto mosquitto-dev mosquitto-clients
@@ -25,7 +22,7 @@ sudo apt install -y mosquitto mosquitto-dev mosquitto-clients
 #sudo systemctl status mosquitto
 
 #Para iniciarlo (si no está):
-sudo systemctl start mosquitto
+#sudo systemctl start mosquitto
 
 ##############################################################
 ####           Ubicación de pymqtt-listener.py            ####
