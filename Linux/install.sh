@@ -87,7 +87,7 @@ sudo systemctl restart mosquitto
 #sudo apt install --break-system-packages -y python3 python3-pip
 
 #Para instalar los módulos requeridos:
-pip install --break-system-packages paho-mqtt datetime
+pip install --break-system-packages paho-mqtt datetime threaded keyboard
 
 ##############################################################
 ######################### IMPORTANTE #########################

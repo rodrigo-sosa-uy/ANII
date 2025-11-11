@@ -25,6 +25,8 @@ TOPIC_OUT_VALVE = "control/out_valve"
 ################ Definicion de archivos #################
 #########################################################
 
+# Para el funcionamiento
+
 temperature_file = '/home/log/temperature.csv'
 radiation_file = '/home/log/radiation.csv'
 humidity_file = '/home/log/humidity.csv'
