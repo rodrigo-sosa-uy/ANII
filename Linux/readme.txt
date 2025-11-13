@@ -1,4 +1,23 @@
 ##############################################################
+####             Guía para la puesta en marcha            ####
+####             del sistema de recolección de            ####
+####             datos del Proy. Desalinizador            ####
+##############################################################
+####             Desarrollado por Rodrigo Sosa            ####
+####                rodrigo.sosa@utec.edu.uy              ####
+##############################################################
+##############################################################
+##############            IMPORTANTE            ##############
+##############################################################
+- Asegurese de tener conexión a internet.
+- El script ha sido desarrollado y probado para Xubuntu 22.04.
+- Se debe tener una instalación limpia del sis. operativo.
+- Este script pone en marcha el sistema, sin necesidad de
+  acciones suplementarias.
+- Se asume que Python está instalado en el sistema operativo.
+- Las comprobaciones están desactivadas, puede verificar
+  manualmente el estado del servicio o la red.
+##############################################################
 ####             Para instalar automáticamente            ####
 ##############################################################
 
