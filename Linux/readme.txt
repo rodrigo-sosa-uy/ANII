@@ -67,19 +67,8 @@ netstat -an | grep tcp
 ##############################################################
 ######################### IMPORTANTE #########################
 ##############################################################
-#### Se debe utilizar solamente una de las alternativas: #####
-#### - mqtt-listener.sh: escribe directamente en log     #####
 #### - pymqtt-listener.py: escribe un timestamp en csv   #####
 ##############################################################
-
-##############################################################
-####            Ubicación de mqtt-listener.sh             ####
-##############################################################
-
-El archivo mqtt-listener.sh va en /usr/local/bin
-
-sudo mv mqtt-listener.sh /usr/local/bin/
-sudo chmod +x /usr/local/bin/mqtt-listener.sh
 
 ##############################################################
 ####           Ubicación de pymqtt-listener.py            ####
@@ -93,24 +82,8 @@ sudo chmod +x /usr/local/bin/pymqtt-listener.py
 ##############################################################
 ######################### IMPORTANTE #########################
 ##############################################################
-#### Se debe utilizar solamente una de las alternativas: #####
-#### - mqtt-listener.service: para mqtt-listener.sh      #####
 #### - pymqtt-listener.service: para pymqtt-listener.py  #####
 ##############################################################
-
-##############################################################
-####         Ubicación de mqtt-listener.service           ####
-##############################################################
-
-El archivo mqtt-listener.service va en /etc/systemd/system
-
-sudo chmod 777 /etc/systemd/system/mqtt-listener.service
-
-sudo systemctl daemon-reload
-sudo systemctl enable mqtt-listener.service
-sudo systemctl start mqtt-listener.service
-
-sudo systemctl status mqtt-listener.service
 
 ##############################################################
 ####        Ubicación de pymqtt-listener.service          ####
@@ -134,7 +107,7 @@ Para instalar Python:
 sudo apt install -y python3 python3-pip
 
 Para instalar los módulos requeridos:
-pip install --break-system-packages paho-mqtt datetime threaded keyboard
+pip install paho-mqtt datetime threaded keyboard
 
 ##############################################################
 ####             Se crea directorio de log                ####
@@ -144,23 +117,12 @@ sudo mkdir -p /home/log
 sudo chmod 777 /home/log
 
 ##############################################################
-####              Ubicación de archivo log                ####
-##############################################################
-
-El servicio escribe en el archivo:
-/home/log/temperature.log
-
-Si se quiere cambiar archivo de registro:
-	Cambiar en mqtt-listener.sh
-
-##############################################################
 ####              Ubicación de archivo csv                ####
 ##############################################################
 
 El servicio escribe en el archivo:
 /home/log/temperature.csv
 
-Si se quiere cambiar archivo de registro:
-	Cambiar en pymqtt-listener.py
-
+##############################################################
+####               Instalación finalizada                 ####
 ##############################################################

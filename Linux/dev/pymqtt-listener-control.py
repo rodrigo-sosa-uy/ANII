@@ -62,13 +62,20 @@ with open(out_valve_file, 'w', newline='') as f:
 #########################################################
 
 modo = "auto"  # estado inicial
+client = None
 
 #########################################################
 ################### Hilos y funciones ###################
 #########################################################
 
 def publicar_valvula(topic, valor):
+    global client
     client.publish(topic, valor)
+    
+    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    timestamp = timestamp.split(' ')
+    date = timestamp[0]
+    time = timestamp[1]
     
     if topic == TOPIC_IN_VALVE:
         with open(in_valve_file, 'a', newline='') as f:
@@ -84,6 +91,8 @@ def publicar_valvula(topic, valor):
 
 def mqtt_thread():
     global mediciones
+    global client
+    
     def on_connect(client, userdata, flags, rc):
         print("Conectado con código:", rc)
         for top in MEASURE_TOPICS:

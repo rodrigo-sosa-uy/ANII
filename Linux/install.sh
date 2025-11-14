@@ -15,7 +15,7 @@
 ####                Para instalar mosquitto               ####
 ##############################################################
 
-sudo apt-get update -y
+#sudo apt-get update -y
 sudo apt install -y mosquitto mosquitto-dev mosquitto-clients
 
 #Para comprobar que está funcionando:
@@ -84,11 +84,11 @@ sudo systemctl restart mosquitto
 ##############################################################
 
 #Para instalar Python:
-#sudo apt install --break-system-packages -y python3
-sudo apt install --break-system-packages -y python3-pip
+#sudo apt install -y python3
+sudo apt install -y python3-pip
 
 #Para instalar los módulos requeridos:
-pip install --break-system-packages paho-mqtt datetime threaded keyboard
+pip install paho-mqtt datetime threaded keyboard
 
 ##############################################################
 ######################### IMPORTANTE #########################
@@ -107,11 +107,8 @@ sudo chmod 777 /home/log
 #El servicio escribe en el archivo:
 #/home/log/temperature.csv
 
-#Si se quiere cambiar archivo de registro:
-#	Cambiar en pymqtt-listener.py
-
 ##############################################################
-####              Ubicación de archivo csv                ####
+####                Finaliza la ejecucíon                 ####
 ##############################################################
 
 echo "Instalación finalizada."
