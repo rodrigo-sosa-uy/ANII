@@ -15,7 +15,7 @@
 ####                Para instalar mosquitto               ####
 ##############################################################
 
-#sudo apt-get update -y
+#sudo apt update
 sudo apt install -y mosquitto mosquitto-dev mosquitto-clients
 
 #Para comprobar que está funcionando:

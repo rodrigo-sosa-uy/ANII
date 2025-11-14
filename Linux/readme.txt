@@ -35,6 +35,29 @@ Al finalizar, deben haberse movido los archivos:
 - pymqtt-listener.service
 
 ##############################################################
+######################### IMPORTANTE #########################
+##############################################################
+####    Ejecutar solamente después de haber realizado     ####
+####  la instalación, sea manualmente o automáticamente   ####
+##############################################################
+####                 Para configurar la red               ####
+##############################################################
+
+- Asegurese de que el dispositivo está conectado a la red
+
+Abrir terminal en esa carpeta y ejecutar:
+sudo chmod 777 net.sh
+sudo bash net.sh
+
+Este script debe asignar una IP estática al dispositivo.
+La IP definida es: 169.254.41.250/16
+
+Se recomienda reiniciar el dispositivo y corroborar que tiene
+la IP correcta:
+
+sudo nmcli
+
+##############################################################
 ####               Para instalar manualmente              ####
 ##############################################################
 ##############################################################
