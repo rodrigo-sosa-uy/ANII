@@ -8,6 +8,8 @@
 #### Los archivos:                                        ####
 #### - pymqtt-listener.py                                 ####
 #### - pymqtt-listener.service                            ####
+#### - data-send.py                                       ####
+#### - data-send.service                                  ####
 #### deben estar en la misma carpeta que este script.     ####
 ##############################################################
 
@@ -38,9 +40,23 @@ else
 fi
 
 ##############################################################
+####              Ubicación de data-send.py               ####
+##############################################################
+
+#El archivo data-send.py va en /usr/local/bin
+
+if [ -f "data-send.py" ]; then
+    sudo mv data-send.py /usr/local/bin/
+    sudo chmod +x /usr/local/bin/data-send.py
+else
+    echo "⚠️  No se encontró data-send.py en el directorio actual"
+fi
+
+##############################################################
 ######################### IMPORTANTE #########################
 ##############################################################
 #### - pymqtt-listener.service: para pymqtt-listener.py  #####
+#### - data-send.service: para data-send.py              #####
 ##############################################################
 
 ##############################################################
@@ -59,6 +75,24 @@ if [ -f "pymqtt-listener.service" ]; then
 	#sudo systemctl status pymqtt-listener.service
 else
     echo "⚠️  No se encontró pymqtt-listener.service en el directorio actual"
+fi
+
+##############################################################
+####           Ubicación de data-send.service             ####
+##############################################################
+
+#El archivo data-send.service va en /etc/systemd/system
+
+if [ -f "data-send.service" ]; then
+    sudo mv data-send.service /etc/systemd/system/
+    sudo chmod 777 /etc/systemd/system/data-send.service
+    sudo systemctl daemon-reload
+    sudo systemctl enable data-send.service
+    sudo systemctl start data-send.service
+	
+	#sudo systemctl status data-send.service
+else
+    echo "⚠️  No se encontró data-send.service en el directorio actual"
 fi
 
 #Para que pueda escuchar en la red:
@@ -88,7 +122,7 @@ sudo systemctl restart mosquitto
 sudo apt install -y python3-pip
 
 #Para instalar los módulos requeridos:
-pip install paho-mqtt datetime threaded keyboard
+pip install paho-mqtt datetime threaded keyboard ftplib logging time os
 
 ##############################################################
 ######################### IMPORTANTE #########################
@@ -106,6 +140,13 @@ sudo chmod 777 /home/log
 
 #El servicio escribe en el archivo:
 #/home/log/temperature.csv
+#/home/log/radiation.csv
+#/home/log/humidity.csv
+
+#/home/log/in_valve.csv
+#/home/log/out_valve.csv
+
+#/home/log/data-send.log
 
 ##############################################################
 ####                Finaliza la ejecucíon                 ####

@@ -24,6 +24,8 @@
 Se debe tener una carpeta con los archivos:
 - pymqtt-listener.py
 - pymqtt-listener.service
+- data-send.py
+- data-send.service
 - install.sh
 
 Abrir terminal en esa carpeta y ejecutar:
@@ -33,6 +35,8 @@ sudo bash install.sh
 Al finalizar, deben haberse movido los archivos:
 - pymqtt-listener.py
 - pymqtt-listener.service
+- data-send.py
+- data-send.service
 
 ##############################################################
 ######################### IMPORTANTE #########################
@@ -103,9 +107,19 @@ sudo mv pymqtt-listener.py /usr/local/bin/
 sudo chmod +x /usr/local/bin/pymqtt-listener.py
 
 ##############################################################
+####              Ubicación de data-send.py               ####
+##############################################################
+
+El archivo data-send.py va en /usr/local/bin
+
+sudo mv data-send.py /usr/local/bin/
+sudo chmod +x /usr/local/bin/data-send.py
+
+##############################################################
 ######################### IMPORTANTE #########################
 ##############################################################
 #### - pymqtt-listener.service: para pymqtt-listener.py  #####
+#### - data-send.service: para data-send.py              #####
 ##############################################################
 
 ##############################################################
@@ -114,6 +128,7 @@ sudo chmod +x /usr/local/bin/pymqtt-listener.py
 
 El archivo pymqtt-listener.service va en /etc/systemd/system
 
+sudo mv pymqtt-listener.service /etc/systemd/system/
 sudo chmod 777 /etc/systemd/system/pymqtt-listener.service
 
 sudo systemctl daemon-reload
@@ -121,6 +136,21 @@ sudo systemctl enable pymqtt-listener.service
 sudo systemctl start pymqtt-listener.service
 
 sudo systemctl status pymqtt-listener.service
+
+##############################################################
+####           Ubicación de data-send.service             ####
+##############################################################
+
+El archivo data-send.service va en /etc/systemd/system
+
+sudo mv data-send.service /etc/systemd/system/
+sudo chmod 777 /etc/systemd/system/data-send.service
+
+sudo systemctl daemon-reload
+sudo systemctl enable data-send.service
+sudo systemctl start data-send.service
+
+sudo systemctl status data-send.service
 
 ##############################################################
 ####                 Para instalar python                 ####

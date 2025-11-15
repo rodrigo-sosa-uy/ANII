@@ -90,7 +90,6 @@ def publicar_valvula(topic, valor):
     print(f"Publicado → {topic}: {valor}")
 
 def mqtt_thread():
-    global mediciones
     global client
     
     def on_connect(client, userdata, flags, rc):

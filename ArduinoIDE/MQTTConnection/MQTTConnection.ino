@@ -11,7 +11,7 @@
 #define debugMode 1
 
 //--------------  Credenciales MQTT  --------------//
-#define mqtt_server "192.168.0.xxx"
+#define mqtt_server "192.168.0.100"
 //#define mqtt_server "169.254.41.250"
 #define mqtt_port 1883
 
@@ -120,7 +120,7 @@ void initWiFi(){
 
   if(debugMode){
     Serial.println("----------------------------");
-    Serial.println(" Conectado a la red.");
+    Serial.print(" Conectado a la red: "); Serial.println(WiFi.SSID());
     Serial.print(" Dirección IP: "); Serial.println(WiFi.localIP());
     Serial.println("----------------------------");
   }
