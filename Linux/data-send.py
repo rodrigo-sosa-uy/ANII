@@ -5,7 +5,7 @@ from ftplib import FTP
 from datetime import datetime, timedelta
 
 #########################################################
-################ Configuración de datos #################
+################ Configuracion de datos #################
 #########################################################
 CARPETA_CSV = "/home/log"
 FTP_HOST = "ftp.utecnologica.com"
@@ -32,7 +32,7 @@ def log(msg):
     logging.info(msg)
 
 def esperar_hasta_medianoche():
-    """Duerme hasta las 00:00 del día siguiente."""
+    """Duerme hasta las 00:00 del dia siguiente."""
     ahora = datetime.now()
     mañana = (ahora + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
     segundos = (mañana - ahora).total_seconds()
@@ -40,13 +40,13 @@ def esperar_hasta_medianoche():
     time.sleep(segundos)
 
 def enviar_archivos():
-    """Envía todos los CSV por FTP al servidor remoto."""
-    log("Iniciando envío de archivos CSV por FTP...")
+    """Envia todos los CSV por FTP al servidor remoto."""
+    log("Iniciando envio de archivos CSV por FTP...")
 
     try:
         ftp = FTP(FTP_HOST)
         ftp.login(FTP_USER, FTP_PASS)
-        log("Conexión FTP establecida.")
+        log("Conexion FTP establecida.")
 
         # Cambiar directorio remoto
         ftp.cwd(FTP_DIR)
@@ -73,7 +73,7 @@ def enviar_archivos():
 #########################################################
 
 if __name__ == "__main__":
-    log("Servicio de envío diario de CSV iniciado.")
+    log("Servicio de envio diario de CSV iniciado.")
     while True:
         esperar_hasta_medianoche()
         enviar_archivos()
