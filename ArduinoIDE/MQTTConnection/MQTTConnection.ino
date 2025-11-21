@@ -226,7 +226,7 @@ void measureTemperature(){
 
 void measureRadiation(){
   int16_t adc_value = ads.readADC_SingleEnded(0);
-  int16_t vcc_mv = adc_value * gain;
+  float vcc_mv = adc_value * gain;
 
   radiation = vcc_mv / cal_factor;
 }
