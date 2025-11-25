@@ -65,7 +65,6 @@ void loop() {
 
 void initWiFi(){
   wifiMulti.addAP("Wifi para pobres", "1234567890");
-  wifiMulti.addAP("Rodriagus", "coquito15");
   wifiMulti.addAP("DispositivosIoT", "itrSO.iot.2012");
 
   while(wifiMulti.run() != WL_CONNECTED){
