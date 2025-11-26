@@ -7,8 +7,8 @@
 #define debugMode 1
 
 //--------------  Credenciales MQTT  --------------//
-//#define mqtt_server "192.168.0.100"
-#define mqtt_server "169.254.41.250"
+#define mqtt_server "192.168.164.163"
+//#define mqtt_server "169.254.41.250"
 #define mqtt_port 1883
 
 ESP8266WiFiMulti wifiMulti;
@@ -35,7 +35,7 @@ const float cal_factor = 70.9e-3;
 
 float radiation;
 
-const long sleepTimeUs = 10 * 1000000 * 60; // 10 minutos
+const long sleepTimeUs = 1 * 1000000 * 60; // 20 minutos
 
 void setup() {
   if(debugMode){
@@ -65,7 +65,7 @@ void loop() {
 
 void initWiFi(){
   wifiMulti.addAP("Wifi para pobres", "1234567890");
-  wifiMulti.addAP("DispositivosIoT", "itrSO.iot.2012");
+  //wifiMulti.addAP("DispositivosIoT", "itrSO.iot.2012");
 
   while(wifiMulti.run() != WL_CONNECTED){
     digitalWrite(BUILTIN_LED, LOW);
@@ -160,4 +160,6 @@ void working(){
 
   measureRadiation();
   pubRadiation();
+
+  delay(1000);
 }

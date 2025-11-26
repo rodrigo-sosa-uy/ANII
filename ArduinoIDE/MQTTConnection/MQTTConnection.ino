@@ -246,6 +246,7 @@ void pubTemperature(){
     Serial.print("]: ");
     Serial.println(temperature);
   }
+  delay(1000);
 }
 
 void pubRadiation(){
@@ -259,6 +260,7 @@ void pubRadiation(){
     Serial.print("]: ");
     Serial.println(radiation);
   }
+  delay(1000);
 }
 
 void pubHumidity(){
@@ -272,4 +274,5 @@ void pubHumidity(){
     Serial.print("]: ");
     Serial.println(humidity);
   }
+  delay(1000);
 }

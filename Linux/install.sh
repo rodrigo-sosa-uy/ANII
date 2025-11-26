@@ -122,7 +122,8 @@ sudo systemctl restart mosquitto
 sudo apt install -y python3-pip
 
 #Para instalar los módulos requeridos:
-pip install paho-mqtt datetime threaded keyboard ftplib logging time os
+sudo apt install python3-paho-mqtt
+pip install paho-mqtt keyboard
 
 ##############################################################
 ######################### IMPORTANTE #########################

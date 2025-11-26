@@ -160,7 +160,7 @@ Para instalar Python:
 sudo apt install -y python3 python3-pip
 
 Para instalar los módulos requeridos:
-pip install paho-mqtt datetime threaded keyboard
+pip install paho-mqtt datetime threaded keyboard time os
 
 ##############################################################
 ####             Se crea directorio de log                ####
