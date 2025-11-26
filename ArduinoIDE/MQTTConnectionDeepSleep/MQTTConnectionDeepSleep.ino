@@ -7,7 +7,7 @@
 #define debugMode 1
 
 //--------------  Credenciales MQTT  --------------//
-#define mqtt_server "192.168.164.163"
+#define mqtt_server "192.168.101.250"
 //#define mqtt_server "169.254.41.250"
 #define mqtt_port 1883
 
@@ -35,7 +35,7 @@ const float cal_factor = 70.9e-3;
 
 float radiation;
 
-const long sleepTimeUs = 1 * 1000000 * 60; // 20 minutos
+const long sleepTimeUs = 20 * 1000000 * 60; // 20 minutos
 
 void setup() {
   if(debugMode){
@@ -66,6 +66,7 @@ void loop() {
 void initWiFi(){
   wifiMulti.addAP("Wifi para pobres", "1234567890");
   //wifiMulti.addAP("DispositivosIoT", "itrSO.iot.2012");
+  wifiMulti.addAP("UTEC-Invitados", "");
 
   while(wifiMulti.run() != WL_CONNECTED){
     digitalWrite(BUILTIN_LED, LOW);
@@ -99,6 +100,10 @@ void callback(char* topic, byte* payload, unsigned int length) {
 void initMQTT(){
   mqttClient.setServer(mqtt_server, mqtt_port);
   mqttClient.setCallback(callback);
+
+  if(debugMode){
+    Serial.println("MQTT Inicializado.");
+  }
 }
 
 void initADS1115(){

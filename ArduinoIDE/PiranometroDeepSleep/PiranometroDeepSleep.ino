@@ -4,7 +4,7 @@
 #include <Wire.h>
 #include <Adafruit_ADS1X15.h>
 
-#define debugMode 0
+#define debugMode 1
 
 //--------------  Credenciales MQTT  --------------//
 #define mqtt_server "192.168.101.250"
@@ -18,13 +18,10 @@ PubSubClient mqttClient(espClient);
 //-------------------  Topicos  -------------------//
 
 #define TOPIC_RADIATION "measure/radiation"
-#define TOPIC_CTRL "control/sampletime"
 
 //----------  Variables de comunicacion  ----------//
 #define buff_size 10
 char msg[buff_size];
-unsigned long lastMsg;
-int pir_time = 20;
 
 //-----------------  Piranometro  -----------------//
 Adafruit_ADS1115 ads;
@@ -38,9 +35,12 @@ const float cal_factor = 70.9e-3;
 
 float radiation;
 
+const long sleepTimeUs = 20 * 1000000 * 60; // 20 minutos
+
 void setup() {
   if(debugMode){
     Serial.begin(115200);
+    Serial.println("ESP8266 desperto!");
   }
 
   Wire.begin();
@@ -50,10 +50,17 @@ void setup() {
   initWiFi();
   initMQTT();
   initADS1115();
+
+  working();
+
+  if(debugMode){
+    Serial.println("Entrando en Deep Sleep...");
+  }
+  ESP.deepSleep(sleepTimeUs);
 }
 
 void loop() {
-  working();
+
 }
 
 void initWiFi(){
@@ -77,7 +84,7 @@ void initWiFi(){
     Serial.print(" Conectado a la red: "); Serial.println(WiFi.SSID());
     Serial.print(" Dirección IP: "); Serial.println(WiFi.localIP());
     Serial.println("----------------------------");
-  }
+  } 
 }
 
 void callback(char* topic, byte* payload, unsigned int length) {
@@ -88,29 +95,11 @@ void callback(char* topic, byte* payload, unsigned int length) {
     }
     Serial.println();
   }
-
-  if(topic == TOPIC_CTRL){
-    if((char)payload[0] == '1'){
-      pir_time += 5;
-      if(debugMode){
-        Serial.print("Tiempo de muestreo:"); Serial.println(pir_time);
-      }
-    } else if((char)payload[0] == '0'){
-      if(pir_time > 5){
-        pir_time -= 5;
-        if(debugMode){
-        Serial.print("Tiempo de muestreo:"); Serial.println(pir_time);
-      }
-      }
-    }
-  }
 }
 
 void initMQTT(){
   mqttClient.setServer(mqtt_server, mqtt_port);
   mqttClient.setCallback(callback);
-
-  mqttClient.subscribe(TOPIC_CTRL);
 
   if(debugMode){
     Serial.println("MQTT Inicializado.");
@@ -174,13 +163,8 @@ void working(){
   if (!mqttClient.connected()) { reconnect(); }
   mqttClient.loop();
 
-  unsigned long waitTime = pir_time * 60 * 1000;
+  measureRadiation();
+  pubRadiation();
 
-  unsigned long now = millis();
-  if (now - lastMsg > waitTime) {
-    lastMsg = now;
-
-    measureRadiation();
-    pubRadiation();
-  }
+  delay(1000);
 }

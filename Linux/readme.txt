@@ -54,7 +54,7 @@ sudo chmod 777 net.sh
 sudo bash net.sh
 
 Este script debe asignar una IP estática al dispositivo.
-La IP definida es: 169.254.41.250/16
+La IP definida es: 192.168.101.250/24
 
 Se recomienda reiniciar el dispositivo y corroborar que tiene
 la IP correcta:

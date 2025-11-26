@@ -123,7 +123,7 @@ sudo apt install -y python3-pip
 
 #Para instalar los módulos requeridos:
 sudo apt install python3-paho-mqtt
-pip install paho-mqtt keyboard
+sudo pip3 install keyboard
 
 ##############################################################
 ######################### IMPORTANTE #########################
@@ -153,6 +153,8 @@ sudo chmod 777 /home/log
 ####                Finaliza la ejecucíon                 ####
 ##############################################################
 
-echo "Instalación finalizada."
+echo "##############################################################"
+echo "################### Instalación finalizada ###################"
+echo "##############################################################"
 
 ##############################################################

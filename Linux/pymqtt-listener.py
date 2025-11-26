@@ -21,6 +21,7 @@ MEASURE_TOPICS = [
 
 TOPIC_IN_VALVE = "control/in_valve"
 TOPIC_OUT_VALVE = "control/out_valve"
+TOPIC_CTRL = "control/sampletime"
 
 #########################################################
 ################ Definicion de archivos #################
@@ -171,6 +172,13 @@ def teclado_thread():
                     time.sleep(0.3)
                 elif keyboard.is_pressed("f6"):
                     publicar_valvula(TOPIC_OUT_VALVE, 0)
+                    time.sleep(0.3)
+            elif modo == "auto":
+                if keyboard.is_pressed("f7"):
+                    publicar_valvula(TOPIC_CTRL, 1)
+                    time.sleep(0.3)
+                elif keyboard.is_pressed("f8"):
+                    publicar_valvula(TOPIC_CTRL, 0)
                     time.sleep(0.3)
                     
             time.sleep(0.1)
