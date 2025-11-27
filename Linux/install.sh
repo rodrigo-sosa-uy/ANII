@@ -53,6 +53,19 @@ else
 fi
 
 ##############################################################
+####          Ubicación de telegram-uploader.py           ####
+##############################################################
+
+#El archivo telegram-uploader.py va en /usr/local/bin
+
+if [ -f "telegram-uploader.py" ]; then
+    sudo mv telegram-uploader.py /usr/local/bin/
+    sudo chmod +x /usr/local/bin/telegram-uploader.py
+else
+    echo "⚠️  No se encontró telegram-uploader.py en el directorio actual"
+fi
+
+##############################################################
 ######################### IMPORTANTE #########################
 ##############################################################
 #### - pymqtt-listener.service: para pymqtt-listener.py  #####
@@ -95,6 +108,24 @@ else
     echo "⚠️  No se encontró data-send.service en el directorio actual"
 fi
 
+##############################################################
+####       Ubicación de telegram-uploader.service         ####
+##############################################################
+
+#El archivo telegram-uploader.service va en /etc/systemd/system
+
+if [ -f "telegram-uploader.service" ]; then
+    sudo mv telegram-uploader.service /etc/systemd/system/
+    sudo chmod 777 /etc/systemd/system/telegram-uploader.service
+    sudo systemctl daemon-reload
+    sudo systemctl enable telegram-uploader.service
+    sudo systemctl start telegram-uploader.service
+	
+	#sudo systemctl status telegram-uploader.service
+else
+    echo "⚠️  No se encontró telegram-uploader.service en el directorio actual"
+fi
+
 #Para que pueda escuchar en la red:
 #En la carpeta /etc/mosquitto/conf.d, crear el archivo re.conf
 
@@ -122,8 +153,9 @@ sudo systemctl restart mosquitto
 sudo apt install -y python3-pip
 
 #Para instalar los módulos requeridos:
-sudo apt install python3-paho-mqtt
-sudo pip3 install keyboard
+sudo apt install python3-paho-mqtt -y
+sudo apt install python3-requests -y
+sudo pip3 install keyboard 
 
 ##############################################################
 ######################### IMPORTANTE #########################

@@ -24,7 +24,7 @@ PubSubClient mqttClient(espClient);
 #define buff_size 10
 char msg[buff_size];
 unsigned long lastMsg;
-int pir_time = 20;
+unsigned long waitTime = 15 * 60 * 1000;
 
 //-----------------  Piranometro  -----------------//
 Adafruit_ADS1115 ads;
@@ -37,6 +37,8 @@ const float cal_factor = 70.9e-3;
 // Black - Shield - Ground
 
 float radiation;
+
+bool fg = true;
 
 void setup() {
   if(debugMode){
@@ -88,29 +90,11 @@ void callback(char* topic, byte* payload, unsigned int length) {
     }
     Serial.println();
   }
-
-  if(topic == TOPIC_CTRL){
-    if((char)payload[0] == '1'){
-      pir_time += 5;
-      if(debugMode){
-        Serial.print("Tiempo de muestreo:"); Serial.println(pir_time);
-      }
-    } else if((char)payload[0] == '0'){
-      if(pir_time > 5){
-        pir_time -= 5;
-        if(debugMode){
-        Serial.print("Tiempo de muestreo:"); Serial.println(pir_time);
-      }
-      }
-    }
-  }
 }
 
 void initMQTT(){
   mqttClient.setServer(mqtt_server, mqtt_port);
   mqttClient.setCallback(callback);
-
-  mqttClient.subscribe(TOPIC_CTRL);
 
   if(debugMode){
     Serial.println("MQTT Inicializado.");
@@ -129,10 +113,21 @@ void initADS1115(){
 }
 
 void measureRadiation(){
-  int16_t adc_value = ads.readADC_SingleEnded(0);
-  float vcc_mv = adc_value * gain;
+  long adc_accumulated = 0; // Variable para sumar las lecturas
+  int samples = 10;         // Número de muestras a promediar
 
+  for (int i = 0; i < samples; i++) {
+    adc_accumulated += ads.readADC_SingleEnded(0);
+    delay(20); // Pequeña pausa de 20ms entre lecturas para estabilizar ruido
+  }
+
+  // Calculamos el promedio de los valores crudos del ADC
+  float avg_adc_value = (float)adc_accumulated / samples;
+  
+  // Convertimos el promedio a voltaje y luego a radiación
+  float vcc_mv = avg_adc_value * gain;
   radiation = vcc_mv / cal_factor;
+  delay(10);
 }
 
 void pubRadiation(){
@@ -174,7 +169,11 @@ void working(){
   if (!mqttClient.connected()) { reconnect(); }
   mqttClient.loop();
 
-  unsigned long waitTime = pir_time * 60 * 1000;
+  if(fg){
+    measureRadiation();
+    pubRadiation();
+    fg = false;
+  }
 
   unsigned long now = millis();
   if (now - lastMsg > waitTime) {

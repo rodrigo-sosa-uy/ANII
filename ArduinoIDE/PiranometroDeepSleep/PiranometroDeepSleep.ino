@@ -35,7 +35,7 @@ const float cal_factor = 70.9e-3;
 
 float radiation;
 
-const long sleepTimeUs = 20 * 1000000 * 60; // 20 minutos
+const long sleepTimeUs = 1 * 1000000 * 60; // 20 minutos
 
 void setup() {
   if(debugMode){
