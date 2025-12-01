@@ -155,6 +155,8 @@ sudo apt install -y python3-pip
 #Para instalar los módulos requeridos:
 sudo apt install python3-paho-mqtt -y
 sudo apt install python3-requests -y
+sudo apt install python3-pandas -y
+sudo apt install python3-matplotlib -y
 sudo pip3 install keyboard 
 
 ##############################################################

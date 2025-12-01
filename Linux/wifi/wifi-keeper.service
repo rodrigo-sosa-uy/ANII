@@ -1,0 +1,16 @@
+[Unit]
+Description=Keep-Alive for Captive Portal (UTEC)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStart=/usr/bin/python3 -u /usr/local/bin/wifi-keeper.py
+Restart=always
+RestartSec=10
+
+User=root
+Group=root
+WorkingDirectory=/usr/local/bin
+
+[Install]
+WantedBy=multi-user.target
