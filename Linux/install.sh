@@ -14,6 +14,16 @@
 ##############################################################
 
 ##############################################################
+####                Para instalar RustDesk                ####
+##############################################################
+
+# Descargar el paquete (versión estable)
+wget https://github.com/rustdesk/rustdesk/releases/download/1.4.4/rustdesk-1.4.4-x86_64.deb
+
+# Instalarlo y sus dependencias
+sudo apt install ./rustdesk-1.4.4-x86_64.deb
+
+##############################################################
 ####                Para instalar mosquitto               ####
 ##############################################################
 
@@ -157,7 +167,7 @@ sudo apt install python3-paho-mqtt -y
 sudo apt install python3-requests -y
 sudo apt install python3-pandas -y
 sudo apt install python3-matplotlib -y
-sudo pip3 install keyboard 
+sudo pip3 install keyboard -y
 
 ##############################################################
 ######################### IMPORTANTE #########################
@@ -168,20 +178,6 @@ sudo pip3 install keyboard
 #Se crea el directorio para el csv:
 sudo mkdir -p /home/log
 sudo chmod 777 /home/log
-
-##############################################################
-####              Ubicación de archivo csv                ####
-##############################################################
-
-#El servicio escribe en el archivo:
-#/home/log/temperature.csv
-#/home/log/radiation.csv
-#/home/log/humidity.csv
-
-#/home/log/in_valve.csv
-#/home/log/out_valve.csv
-
-#/home/log/data-send.log
 
 ##############################################################
 ####                Finaliza la ejecucíon                 ####

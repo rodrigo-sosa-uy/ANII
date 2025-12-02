@@ -32,7 +32,7 @@ LOG_DIR = '/home/log'
 
 # Diccionario para mapear el nombre del sensor con su cabecera CSV
 HEADERS = {
-    'temperature': ['Time', 'Temperature(°C)'],
+    'temperature': ['Time', 'Temperature1(°C)', 'Temperature2(°C)'],
     'radiation':   ['Time', 'Radiation(W/m^2)'],
     'humidity':    ['Time', 'Humidity(%)'],
     'in_valve':    ['Time', 'Signal(IN)'],

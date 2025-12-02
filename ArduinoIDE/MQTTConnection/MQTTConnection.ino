@@ -11,7 +11,7 @@
 #define debugMode 1
 
 //--------------  Credenciales MQTT  --------------//
-#define mqtt_server "192.168.0.100"
+#define mqtt_server "192.168.101.250"
 //#define mqtt_server "169.254.41.250"
 #define mqtt_port 1883
 
@@ -32,6 +32,7 @@ PubSubClient mqttClient(espClient);
 #define buff_size 10
 char msg[buff_size];
 unsigned long lastMsg;
+unsigned long waitTime = 15 * 60 * 1000;
 
 //-------------  Entradas y salidas  --------------//
 #define IN_VALVE 13    // D7
@@ -39,12 +40,15 @@ unsigned long lastMsg;
 
 //------------  Sensor de temperatura  ------------//
 #define MAX6675_SO 2   // D4
-#define MAX6675_CS 14  // D5
+#define MAX6675_CS1 14  // D5
+#define MAX6675_CS2 0  // D3
 #define MAX6675_SCK 12 // D6
 
-MAX6675 thermocouple(MAX6675_SCK, MAX6675_CS, MAX6675_SO);
+MAX6675 thermocouple1(MAX6675_SCK, MAX6675_CS1, MAX6675_SO);
+MAX6675 thermocouple2(MAX6675_SCK, MAX6675_CS2, MAX6675_SO);
 
-float temperature;
+float temperature1;
+float temperature2;
 
 //-----------------  Piranometro  -----------------//
 Adafruit_ADS1115 ads;
@@ -67,6 +71,8 @@ int humidity;
 
 //-------------------------------------------------//
 
+bool fg = true;
+
 void setup() {
   if(debugMode){
     Serial.begin(115200);
@@ -88,7 +94,7 @@ void loop() {
   mqttClient.loop();
 
   unsigned long now = millis();
-  if (now - lastMsg > 10000) {
+  if (now - lastMsg > waitTime) {
     lastMsg = now;
 
     measureTemperature();
@@ -105,7 +111,8 @@ void loop() {
 void initWiFi(){
   wifiMulti.addAP("Wifi para pobres", "1234567890");
   wifiMulti.addAP("Rodriagus", "coquito15");
-  wifiMulti.addAP("DispositivosIoT", "itrSO.iot.2012");
+  //wifiMulti.addAP("DispositivosIoT", "itrSO.iot.2012");
+  wifiMulti.addAP("UTEC-Invitados", "");
 
   while(wifiMulti.run() != WL_CONNECTED){
     digitalWrite(BUILTIN_LED, LOW);
@@ -147,7 +154,8 @@ void initBME(){
 }
 
 void initMAX6675(){
-  pinMode(MAX6675_CS, OUTPUT);
+  pinMode(MAX6675_CS1, OUTPUT);
+  pinMode(MAX6675_CS2, OUTPUT);
   pinMode(MAX6675_SO, INPUT);
   pinMode(MAX6675_SCK, OUTPUT);
 
@@ -221,14 +229,26 @@ void initMQTT(){
 }
 
 void measureTemperature(){
-  temperature = thermocouple.readCelsius();
+  temperature1 = thermocouple1.readCelsius();
+  temperature2 = thermocouple2.readCelsius();
 }
 
 void measureRadiation(){
-  int16_t adc_value = ads.readADC_SingleEnded(0);
-  float vcc_mv = adc_value * gain;
+  long adc_accumulated = 0; // Variable para sumar las lecturas
+  int samples = 10;         // Número de muestras a promediar
 
+  for (int i = 0; i < samples; i++) {
+    adc_accumulated += ads.readADC_SingleEnded(0);
+    delay(20); // Pequeña pausa de 20ms entre lecturas para estabilizar ruido
+  }
+
+  // Calculamos el promedio de los valores crudos del ADC
+  float avg_adc_value = (float)adc_accumulated / samples;
+  
+  // Convertimos el promedio a voltaje y luego a radiación
+  float vcc_mv = avg_adc_value * gain;
   radiation = vcc_mv / cal_factor;
+  delay(10);
 }
 
 void measureHumidity(){
@@ -236,7 +256,7 @@ void measureHumidity(){
 }
 
 void pubTemperature(){
-  snprintf(msg, buff_size, "%.2f", temperature);
+  snprintf(msg, buff_size, "%.2f,%.2f", temperature1, temperature2);
 
   mqttClient.publish(TOPIC_TEMPERATURE, msg);
 
