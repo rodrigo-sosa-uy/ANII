@@ -21,7 +21,9 @@
 wget https://github.com/rustdesk/rustdesk/releases/download/1.4.4/rustdesk-1.4.4-x86_64.deb
 
 # Instalarlo y sus dependencias
-sudo apt install ./rustdesk-1.4.4-x86_64.deb
+sudo apt install ./rustdesk-1.4.4-x86_64.deb -y
+
+sudo rm rustdesk-1.4.4-x86_64.deb -y
 
 ##############################################################
 ####                Para instalar mosquitto               ####
@@ -167,7 +169,7 @@ sudo apt install python3-paho-mqtt -y
 sudo apt install python3-requests -y
 sudo apt install python3-pandas -y
 sudo apt install python3-matplotlib -y
-sudo pip3 install keyboard -y
+sudo pip3 install keyboard
 
 ##############################################################
 ######################### IMPORTANTE #########################
@@ -185,6 +187,9 @@ sudo chmod 777 /home/log
 
 echo "##############################################################"
 echo "################### Instalación finalizada ###################"
+echo "##############################################################"
+echo "#### En caso de no haber errores, puede proseguir con la  ####"
+echo "#### ejecucion de net.sh y wifi.sh (solo si lo requiere)  ####"
 echo "##############################################################"
 
 ##############################################################

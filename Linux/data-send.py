@@ -34,11 +34,11 @@ def log(msg):
     logging.info(msg)
 
 def esperar_hasta_medianoche():
-    """Duerme hasta las 00:00:05 del dia siguiente."""
+    """Duerme hasta las 00:10:00 del dia siguiente."""
     ahora = datetime.now()
     
     # Calculamos la medianoche de mañana
-    mañana = (ahora + timedelta(days=1)).replace(hour=0, minute=0, second=5, microsecond=0)
+    mañana = (ahora + timedelta(days=1)).replace(hour=0, minute=10, second=0, microsecond=0)
     
     segundos = (mañana - ahora).total_seconds()
     log(f"Esperando {segundos:.2f} segundos hasta la medianoche para enviar reporte...")
@@ -116,5 +116,5 @@ if __name__ == "__main__":
     # Bucle infinito
     while True:
         esperar_hasta_medianoche()
-        # Al despertar (00:00:05), enviamos lo del dia anterior
+        # Al despertar (00:10:00), enviamos lo del dia anterior
         enviar_archivos_ayer()
