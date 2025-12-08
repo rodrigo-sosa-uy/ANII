@@ -8,10 +8,11 @@ from datetime import datetime, timedelta
 ################ Configuracion de datos #################
 #########################################################
 CARPETA_BASE = "/home/log"
-FTP_HOST = "ftp.utecnologica.com"
+FTP_HOST = "ftp.utecnologica.org"
+#FTP_HOST = "31.220.106.205"
 FTP_USER = "u874918252.imec"
 FTP_PASS = "TU_CONTRASEÑA_AQUI"  # <- IMPORTANTE: Contraseña real
-FTP_DIR = "/destino/remoto"      # <- IMPORTANTE: Cambiar Directorio
+FTP_DIR = "/d_so/log"      # <- IMPORTANTE: Cambiar Directorio
 
 #########################################################
 ################## Creacion del logger ##################
@@ -112,6 +113,8 @@ def enviar_archivos_ayer():
 
 if __name__ == "__main__":
     log("Servicio de envio diario de CSV (por carpetas) iniciado.")
+    
+    #enviar_archivos_ayer()
     
     # Bucle infinito
     while True:
