@@ -1,0 +1,22 @@
+[Unit]
+Description=IoT Telegram Daily Uploader
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+# Ejecutar python sin buffer (-u) para ver logs en tiempo real
+ExecStart=/usr/bin/python3 -u /usr/local/bin/telegram-uploader.py
+Restart=always
+RestartSec=60
+
+# Usuario con permisos de lectura en /home/log y acceso a internet
+User=root
+Group=root
+WorkingDirectory=/usr/local/bin
+
+# Logs del sistema
+StandardOutput=append:/var/log/telegram-uploader.log
+StandardError=append:/var/log/telegram-uploader.log
+
+[Install]
+WantedBy=multi-user.target

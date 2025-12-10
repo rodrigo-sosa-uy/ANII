@@ -10,6 +10,10 @@
 #### - pymqtt-listener.service                            ####
 #### - data-send.py                                       ####
 #### - data-send.service                                  ####
+#### - telegram-uploader.py                               ####
+#### - telegram-uploader.service                          ####
+#### - weather-logger.py                                  ####
+#### - weather-logger.service                             ####
 #### deben estar en la misma carpeta que este script.     ####
 ##############################################################
 
@@ -44,11 +48,11 @@ sudo apt install -y mosquitto mosquitto-dev mosquitto-clients
 
 #El archivo pymqtt-listener.py va en /usr/local/bin
 
-if [ -f "pymqtt-listener.py" ]; then
-    sudo mv pymqtt-listener.py /usr/local/bin/
+if [ -f "installation/pymqtt-listener.py" ]; then
+    sudo mv installation/pymqtt-listener.py /usr/local/bin/
     sudo chmod +x /usr/local/bin/pymqtt-listener.py
 else
-    echo "⚠️  No se encontró pymqtt-listener.py en el directorio actual"
+    echo "⚠️  No se encontró pymqtt-listener.py en el directorio"
 fi
 
 ##############################################################
@@ -57,11 +61,11 @@ fi
 
 #El archivo data-send.py va en /usr/local/bin
 
-if [ -f "data-send.py" ]; then
-    sudo mv data-send.py /usr/local/bin/
+if [ -f "installation/data-send.py" ]; then
+    sudo mv installation/data-send.py /usr/local/bin/
     sudo chmod +x /usr/local/bin/data-send.py
 else
-    echo "⚠️  No se encontró data-send.py en el directorio actual"
+    echo "⚠️  No se encontró data-send.py en el directorio"
 fi
 
 ##############################################################
@@ -70,11 +74,11 @@ fi
 
 #El archivo telegram-uploader.py va en /usr/local/bin
 
-if [ -f "telegram-uploader.py" ]; then
-    sudo mv telegram-uploader.py /usr/local/bin/
+if [ -f "installation/telegram-uploader.py" ]; then
+    sudo mv installation/telegram-uploader.py /usr/local/bin/
     sudo chmod +x /usr/local/bin/telegram-uploader.py
 else
-    echo "⚠️  No se encontró telegram-uploader.py en el directorio actual"
+    echo "⚠️  No se encontró telegram-uploader.py en el directorio"
 fi
 
 ##############################################################
@@ -83,11 +87,11 @@ fi
 
 #El archivo weather-logger.py va en /usr/local/bin
 
-if [ -f "weather-logger.py" ]; then
-    sudo mv weather-logger.py /usr/local/bin/
+if [ -f "installation/weather-logger.py" ]; then
+    sudo mv installation/weather-logger.py /usr/local/bin/
     sudo chmod +x /usr/local/bin/weather-logger.py
 else
-    echo "⚠️  No se encontró weather-logger.py en el directorio actual"
+    echo "⚠️  No se encontró weather-logger.py en el directorio"
 fi
 
 ##############################################################
@@ -103,8 +107,8 @@ fi
 
 #El archivo pymqtt-listener.service va en /etc/systemd/system
 
-if [ -f "pymqtt-listener.service" ]; then
-    sudo mv pymqtt-listener.service /etc/systemd/system/
+if [ -f "installation/pymqtt-listener.service" ]; then
+    sudo mv installation/pymqtt-listener.service /etc/systemd/system/
     sudo chmod 777 /etc/systemd/system/pymqtt-listener.service
     sudo systemctl daemon-reload
     sudo systemctl enable pymqtt-listener.service
@@ -112,7 +116,7 @@ if [ -f "pymqtt-listener.service" ]; then
 	
 	#sudo systemctl status pymqtt-listener.service
 else
-    echo "⚠️  No se encontró pymqtt-listener.service en el directorio actual"
+    echo "⚠️  No se encontró pymqtt-listener.service en el directorio"
 fi
 
 ##############################################################
@@ -121,8 +125,8 @@ fi
 
 #El archivo data-send.service va en /etc/systemd/system
 
-if [ -f "data-send.service" ]; then
-    sudo mv data-send.service /etc/systemd/system/
+if [ -f "installation/data-send.service" ]; then
+    sudo mv installation/data-send.service /etc/systemd/system/
     sudo chmod 777 /etc/systemd/system/data-send.service
     sudo systemctl daemon-reload
     sudo systemctl enable data-send.service
@@ -130,7 +134,7 @@ if [ -f "data-send.service" ]; then
 	
 	#sudo systemctl status data-send.service
 else
-    echo "⚠️  No se encontró data-send.service en el directorio actual"
+    echo "⚠️  No se encontró data-send.service en el directorio"
 fi
 
 ##############################################################
@@ -139,8 +143,8 @@ fi
 
 #El archivo telegram-uploader.service va en /etc/systemd/system
 
-if [ -f "telegram-uploader.service" ]; then
-    sudo mv telegram-uploader.service /etc/systemd/system/
+if [ -f "installation/telegram-uploader.service" ]; then
+    sudo mv installation/telegram-uploader.service /etc/systemd/system/
     sudo chmod 777 /etc/systemd/system/telegram-uploader.service
     sudo systemctl daemon-reload
     sudo systemctl enable telegram-uploader.service
@@ -148,7 +152,7 @@ if [ -f "telegram-uploader.service" ]; then
 	
 	#sudo systemctl status telegram-uploader.service
 else
-    echo "⚠️  No se encontró telegram-uploader.service en el directorio actual"
+    echo "⚠️  No se encontró telegram-uploader.service en el directorio"
 fi
 
 ##############################################################
@@ -157,8 +161,8 @@ fi
 
 #El archivo weather-logger.service va en /etc/systemd/system
 
-if [ -f "weather-logger.service" ]; then
-    sudo mv weather-logger.service /etc/systemd/system/
+if [ -f "installation/weather-logger.service" ]; then
+    sudo mv installation/weather-logger.service /etc/systemd/system/
     sudo chmod 777 /etc/systemd/system/weather-logger.service
     sudo systemctl daemon-reload
     sudo systemctl enable weather-logger.service
@@ -166,7 +170,7 @@ if [ -f "weather-logger.service" ]; then
 	
 	#sudo systemctl status weather-logger.service
 else
-    echo "⚠️  No se encontró weather-logger.service en el directorio actual"
+    echo "⚠️  No se encontró weather-logger.service en el directorio"
 fi
 
 #Para que pueda escuchar en la red:
