@@ -63,10 +63,10 @@ void measureTemp(){
     }
     
     // Convert the data to actual humidity and temperature
-    //unsigned long humidity_raw = ((unsigned long)data[1] << 12) | ((unsigned long)data[2] << 4) | (data[3] >> 4);
+    unsigned long humidity_raw = ((unsigned long)data[1] << 12) | ((unsigned long)data[2] << 4) | (data[3] >> 4);
     unsigned long temp_raw = (((unsigned long)data[3] & 0x0F) << 16) | ((unsigned long)data[4] << 8) | data[5];
     
-    //float humidity = humidity_raw * (100.0 / 1048576.0);
+    float humidity = humidity_raw * (100.0 / 1048576.0);
     temp = (temp_raw * (200.0 / 1048576.0)) - 50;
   }
 }
