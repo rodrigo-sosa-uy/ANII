@@ -28,6 +28,8 @@ Se debe tener una carpeta con los archivos:
 - data-send.service
 - telegram-uploader.py
 - telegram-uploader.service
+- weather-logger.py
+- weather-logger.service
 - install.sh
 
 Abrir una terminal en el escritorio y ejecutar:
@@ -47,6 +49,8 @@ Al finalizar, deben haberse movido los archivos:
 - data-send.service
 - telegram-uploader.py
 - telegram-uploader.service
+- weather-logger.py
+- weather-logger.service
 
 ##############################################################
 ######################### IMPORTANTE #########################

@@ -78,6 +78,19 @@ else
 fi
 
 ##############################################################
+####            Ubicación de weather-logger.py            ####
+##############################################################
+
+#El archivo weather-logger.py va en /usr/local/bin
+
+if [ -f "weather-logger.py" ]; then
+    sudo mv weather-logger.py /usr/local/bin/
+    sudo chmod +x /usr/local/bin/weather-logger.py
+else
+    echo "⚠️  No se encontró weather-logger.py en el directorio actual"
+fi
+
+##############################################################
 ######################### IMPORTANTE #########################
 ##############################################################
 #### - pymqtt-listener.service: para pymqtt-listener.py  #####
@@ -136,6 +149,24 @@ if [ -f "telegram-uploader.service" ]; then
 	#sudo systemctl status telegram-uploader.service
 else
     echo "⚠️  No se encontró telegram-uploader.service en el directorio actual"
+fi
+
+##############################################################
+####         Ubicación de weather-logger.service          ####
+##############################################################
+
+#El archivo weather-logger.service va en /etc/systemd/system
+
+if [ -f "weather-logger.service" ]; then
+    sudo mv weather-logger.service /etc/systemd/system/
+    sudo chmod 777 /etc/systemd/system/weather-logger.service
+    sudo systemctl daemon-reload
+    sudo systemctl enable weather-logger.service
+    sudo systemctl start weather-logger.service
+	
+	#sudo systemctl status weather-logger.service
+else
+    echo "⚠️  No se encontró weather-logger.service en el directorio actual"
 fi
 
 #Para que pueda escuchar en la red:

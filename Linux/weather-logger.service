@@ -1,0 +1,17 @@
+[Unit]
+Description=OpenWeatherMap Logger
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStart=/usr/bin/python3 -u /usr/local/bin/weather-logger.py
+Restart=always
+RestartSec=60
+User=root
+Group=root
+WorkingDirectory=/usr/local/bin
+StandardOutput=append:/var/log/weather-logger.log
+StandardError=append:/var/log/weather-logger.log
+
+[Install]
+WantedBy=multi-user.target
