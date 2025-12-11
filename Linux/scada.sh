@@ -79,3 +79,34 @@ else
 fi
 
 grep "trycloudflare.com" /var/log/scada-tunnel.log | tail -n 1
+
+##############################################################
+####           Ubicación de notifier.py            ####
+##############################################################
+
+#El archivo notifier.py va en /usr/local/bin
+
+if [ -f "scada/notifier.py" ]; then
+    sudo mv scada/notifier.py /usr/local/bin/
+    sudo chmod +x /usr/local/bin/notifier.py
+else
+    echo "⚠️  No se encontró notifier.py en el directorio"
+fi
+
+##############################################################
+####             Ubicación de notifier.service               ####
+##############################################################
+
+#El archivo notifier.service va en /etc/systemd/system
+
+if [ -f "scada/notifier.service" ]; then
+    sudo mv scada/notifier.service /etc/systemd/system/
+    sudo chmod 777 /etc/systemd/system/notifier.service
+    sudo systemctl daemon-reload
+    sudo systemctl enable notifier.service
+    sudo systemctl start notifier.service
+	
+	#sudo systemctl status notifier.service
+else
+    echo "⚠️  No se encontró notifier.service en el directorio"
+fi

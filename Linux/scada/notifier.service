@@ -1,0 +1,13 @@
+[Unit]
+Description=Notificador de URL de Cloudflare a Telegram
+After=network-online.target cloudflare.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+ExecStart=/usr/bin/python3 /usr/local/bin/notifier.py
+
+[Install]
+WantedBy=multi-user.target
