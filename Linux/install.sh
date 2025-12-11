@@ -227,9 +227,9 @@ echo "#### En caso de no haber errores, puede proseguir con la  ####"
 echo "#### ejecucion de net.sh y wifi.sh (solo si lo requiere)  ####"
 echo "##############################################################"
 
+cd ~/Desktop/ANII/Linux
+
 sudo chmod 777 net.sh
 sudo chmod 777 scada.sh
-
-sudo python3 dev/setup-headless.py
 
 ##############################################################
