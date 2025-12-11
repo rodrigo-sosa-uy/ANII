@@ -3,119 +3,408 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Monitor IoT en Vivo</title>
-    <!-- Cargamos la librería para comunicación en tiempo real -->
+    <title>SCADA - Desalinizador ITRSO</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f0f2f5;
-            text-align: center;
-            padding: 20px;
-            color: #333;
+        body { 
+            font-family: 'Segoe UI', sans-serif; 
+            background-color: #f4f6f9; 
+            text-align: center; 
+            padding: 0; /* Eliminamos padding del body para que la barra toque los bordes */
+            color: #333; 
+            margin: 0;
+            overflow-x: hidden;
+            transition: margin-right .5s;
         }
-        h1 { margin-bottom: 5px; }
-        p { color: #666; margin-bottom: 30px; }
         
-        /* Contenedor de las tarjetas */
-        .container {
+        /* --- ENCABEZADO ESTILO NAVBAR (Ancho Completo) --- */
+        .header {
+            background-color: white;
+            padding: 10px 40px; /* Más espacio a los lados */
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+            
+            /* Configuración para ancho completo */
+            width: 100%;
+            max-width: none; 
+            box-sizing: border-box; /* Importante para que el padding no sume al 100% */
+            border-radius: 0; /* Rectangular */
+            
             display: flex;
-            justify-content: center;
-            flex-wrap: wrap;
-            gap: 20px;
-            max-width: 1000px;
-            margin: 0 auto;
+            justify-content: space-between;
+            align-items: center;
+            
+            /* Opcional: Para que se mantenga arriba al hacer scroll */
+            position: sticky;
+            top: 0;
+            z-index: 100;
         }
 
-        /* Diseño de cada tarjeta */
+        .header-left, .header-right {
+            flex: 1;
+            display: flex;
+            align-items: center;
+        }
+        
+        .header-right {
+            justify-content: flex-end;
+            gap: 25px; /* Espacio generoso entre logo ANII y Botón Menú */
+        }
+
+        .header-center {
+            flex: 2;
+            text-align: center;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 1.6rem; /* Un poco más pequeño para barra superior */
+            color: #2c3e50;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .header p {
+            margin: 2px 0 0 0;
+            color: #7f8c8d;
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+
+        /* Estilo de los Logos */
+        .logo {
+            height: 60px; /* Ajustado ligeramente para barra de navegación */
+            width: auto;
+            object-fit: contain;
+            transition: transform 0.3s;
+        }
+        .logo:hover { transform: scale(1.05); }
+
+        .icon-meca {
+            height: 35px;
+            margin-bottom: 2px;
+        }
+
+        /* --- BOTÓN DE MENÚ --- */
+        .menu-btn {
+            font-size: 28px;
+            cursor: pointer;
+            background: none;
+            border: none;
+            color: #2c3e50;
+            padding: 8px;
+            border-radius: 5px;
+            transition: 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .menu-btn:hover { background-color: #ecf0f1; }
+
+        /* --- SIDEBAR --- */
+        .sidebar {
+            height: 100%;
+            width: 0;
+            position: fixed;
+            z-index: 1000; /* Por encima del header sticky */
+            top: 0;
+            right: 0;
+            background-color: #2c3e50;
+            overflow-x: hidden;
+            transition: 0.5s;
+            padding-top: 60px;
+            box-shadow: -5px 0 15px rgba(0,0,0,0.2);
+        }
+
+        .sidebar a {
+            padding: 15px 25px;
+            text-decoration: none;
+            font-size: 1.2rem;
+            color: #bdc3c7;
+            display: block;
+            transition: 0.3s;
+            text-align: left;
+            border-left: 5px solid transparent;
+        }
+
+        .sidebar a:hover {
+            color: #f1f1f1;
+            background-color: #34495e;
+            border-left: 5px solid #3498db;
+        }
+
+        .sidebar .closebtn {
+            position: absolute;
+            top: 0;
+            left: 0;
+            font-size: 36px;
+            margin-left: 20px;
+            margin-top: 10px;
+            border: none;
+            color: white;
+            background: none;
+            cursor: pointer;
+        }
+
+        .sidebar-title {
+            color: white;
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            border-bottom: 1px solid #34495e;
+            padding-bottom: 10px;
+        }
+
+        /* --- CONTENEDOR PRINCIPAL --- */
+        .container {
+            display: flex;
+            justify-content: space-between; /* Distribución uniforme */
+            flex-wrap: nowrap; /* Forzar una sola línea en escritorio */
+            gap: 30px; /* Espacio entre tarjetas */
+            width: 100%;
+            max-width: 1600px; /* Permitir más ancho en monitores grandes */
+            margin: 0 auto;
+            padding: 20px 40px; /* Padding lateral */
+            box-sizing: border-box;
+        }
+
         .card {
             background: white;
             padding: 25px;
-            border-radius: 15px;
-            width: 250px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-            transition: transform 0.2s, box-shadow 0.2s;
+            border-radius: 12px;
+            flex: 1; /* Crecer equitativamente para llenar la fila */
+            min-width: 0; /* Evitar que el contenido desborde el flex item */
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            display: flex;
+            flex-direction: column;
         }
-        .card:hover { 
-            transform: translateY(-5px); 
-            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+
+        /* Responsive: En tablets y móviles volvemos a apilar */
+        @media (max-width: 900px) {
+            .container {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            .card {
+                flex: 1 1 100%; /* Ocupar todo el ancho en móvil */
+                max-width: 400px;
+            }
         }
         
-        .card h2 { margin: 0; font-size: 1.2rem; color: #7f8c8d; text-transform: uppercase; letter-spacing: 1px; }
-        .valor { font-size: 3.5rem; font-weight: bold; margin: 15px 0; color: #2c3e50; }
-        .unidad { font-size: 1rem; color: #95a5a6; font-weight: normal; }
+        .card h2 { margin: 0; font-size: 1.1rem; color: #7f8c8d; text-transform: uppercase; }
+        .valor { font-size: 2.5rem; font-weight: bold; margin: 10px 0; color: #2c3e50; }
+        .unidad { font-size: 0.8rem; color: #95a5a6; font-weight: normal; }
 
-        /* Colores específicos para identificar rápido */
-        .rad { border-bottom: 6px solid #e67e22; } /* Naranja */
-        .temp { border-bottom: 6px solid #e74c3c; } /* Rojo */
-        .hum { border-bottom: 6px solid #3498db; }  /* Azul */
+        .chart-container {
+            position: relative;
+            height: 150px;
+            width: 100%;
+            margin-top: 15px;
+        }
 
-        /* Animación cuando llega un dato */
-        .actualizado { color: #27ae60 !important; transition: color 0.1s; }
+        .rad { border-top: 5px solid #e67e22; }
+        .temp { border-top: 5px solid #e74c3c; }
+        .hum { border-top: 5px solid #3498db; }
+
+        /* --- PESTAÑA CONTROL --- */
+        .control-placeholder {
+            padding: 50px;
+            background: white;
+            border-radius: 12px;
+            margin-top: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        }
+        .control-icon { font-size: 4rem; color: #bdc3c7; margin-bottom: 20px; }
+
+        .view-section {
+            display: none;
+            animation: fadeIn 0.5s;
+        }
+        .view-active { display: block; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
     </style>
 </head>
 <body>
 
-    <h1>📊 Monitor de Sensores en Tiempo Real</h1>
-    <p>Sistema de Telemetría MiniPC - UTEC</p>
+    <!-- MENÚ LATERAL -->
+    <div id="mySidebar" class="sidebar">
+        <button class="closebtn" onclick="closeNav()">&times;</button>
+        <div class="sidebar-title">Menú</div>
+        <a href="#" onclick="showView('monitor')">📊 Monitoreo Real-Time</a>
+        <a href="#" onclick="showView('control')">⚙️ Control de Proceso</a>
+        <a href="#" onclick="closeNav()" style="margin-top: 50px; color: #e74c3c;">❌ Cerrar Menú</a>
+    </div>
 
-    <div class="container">
-        <!-- Tarjeta Radiación -->
-        <div class="card rad">
-            <h2>☀️ Radiación</h2>
-            <div class="valor">
-                <span id="v-radiation">{{ datos.radiation }}</span>
-                <span class="unidad">W/m²</span>
-            </div>
+    <!-- ENCABEZADO (Full Width) -->
+    <div class="header">
+        <!-- IZQUIERDA -->
+        <div class="header-left">
+            <img src="/static/utec.png" alt="UTEC" class="logo">
         </div>
 
-        <!-- Tarjeta Temperatura -->
-        <div class="card temp">
-            <h2>🌡️ Temperatura</h2>
-            <div class="valor">
-                <span id="v-temperature">{{ datos.temperature }}</span>
-                <span class="unidad">°C</span>
-            </div>
+        <!-- CENTRO -->
+        <div class="header-center">
+            <img src="/static/meca.png" alt="Mecatrónica" class="icon-meca">
+            <h2>Proyecto Desalinizador ITRSO</h2>
+            <p>Monitoreo en Tiempo Real y Control de Proceso</p>
         </div>
 
-        <!-- Tarjeta Humedad -->
-        <div class="card hum">
-            <h2>💧 Humedad</h2>
-            <div class="valor">
-                <span id="v-humidity">{{ datos.humidity }}</span>
-                <span class="unidad">%</span>
+        <!-- DERECHA -->
+        <div class="header-right">
+            <img src="/static/anii.png" alt="ANII" class="logo">
+            <!-- BOTÓN MENÚ A LA DERECHA DEL LOGO -->
+            <button class="menu-btn" onclick="openNav()" title="Abrir Menú">☰</button>
+        </div>
+    </div>
+
+    <!-- ================= VISTA MONITOREO ================= -->
+    <div id="view-monitor" class="view-section view-active">
+        <div class="container">
+            <!-- Radiación -->
+            <div class="card rad">
+                <h2>☀️ Radiación</h2>
+                <div class="valor">
+                    <span id="v-radiation">{{ datos.radiation }}</span>
+                    <span class="unidad">W/m²</span>
+                </div>
+                <div class="chart-container">
+                    <canvas id="chart-radiation"></canvas>
+                </div>
+            </div>
+
+            <!-- Temperatura -->
+            <div class="card temp">
+                <h2>🌡️ Temperatura</h2>
+                <div class="valor">
+                    <span id="v-temperature">{{ datos.temperature }}</span>
+                    <span class="unidad">°C</span>
+                </div>
+                <div class="chart-container">
+                    <canvas id="chart-temperature"></canvas>
+                </div>
+            </div>
+
+            <!-- Humedad -->
+            <div class="card hum">
+                <h2>💧 Humedad</h2>
+                <div class="valor">
+                    <span id="v-humidity">{{ datos.humidity }}</span>
+                    <span class="unidad">%</span>
+                </div>
+                <div class="chart-container">
+                    <canvas id="chart-humidity"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= VISTA CONTROL ================= -->
+    <div id="view-control" class="view-section">
+        <div class="container">
+            <div class="control-placeholder" style="width: 100%;">
+                <div class="control-icon">⚙️</div>
+                <h2>Panel de Control de Procesos</h2>
+                <p>Módulo en desarrollo. Aquí se ubicarán los controles de bombas, válvulas y setpoints.</p>
+                <button onclick="showView('monitor')" style="padding: 10px 20px; margin-top: 20px; background:#3498db; color:white; border:none; border-radius:5px; cursor:pointer;">Volver al Monitoreo</button>
             </div>
         </div>
     </div>
 
     <script>
-        // Conectar con el servidor Python
         var socket = io();
+        
+        function openNav() {
+            document.getElementById("mySidebar").style.width = "280px";
+        }
 
-        console.log("Conectando al servidor...");
+        function closeNav() {
+            document.getElementById("mySidebar").style.width = "0";
+        }
 
-        socket.on('connect', function() {
-            console.log("¡Conectado exitosamente!");
-        });
+        function showView(viewName) {
+            document.getElementById('view-monitor').classList.remove('view-active');
+            document.getElementById('view-control').classList.remove('view-active');
+            document.getElementById('view-' + viewName).classList.add('view-active');
+            closeNav();
+        }
 
-        // Escuchar el evento 'nuevo_dato' que envía Python
+        const commonOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: { x: { display: false }, y: { beginAtZero: false } },
+            elements: { point: { radius: 0 } },
+            animation: false 
+        };
+
+        function createChart(ctx, color, label) {
+            return new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: label,
+                        data: [],
+                        borderColor: color,
+                        backgroundColor: color + '33',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: commonOptions
+            });
+        }
+
+        const charts = {
+            radiation: createChart(document.getElementById('chart-radiation'), '#e67e22', 'Radiación'),
+            temperature: createChart(document.getElementById('chart-temperature'), '#e74c3c', 'Temp'),
+            humidity: createChart(document.getElementById('chart-humidity'), '#3498db', 'Humedad')
+        };
+
+        fetch('/api/history')
+            .then(response => response.json())
+            .then(data => {
+                const fillChart = (sensor, points) => {
+                    if (charts[sensor] && points) {
+                        points.forEach(p => {
+                            charts[sensor].data.labels.push(p.time);
+                            charts[sensor].data.datasets[0].data.push(p.value);
+                        });
+                        charts[sensor].update();
+                    }
+                };
+                fillChart('radiation', data.radiation);
+                fillChart('temperature', data.temperature);
+                fillChart('humidity', data.humidity);
+            });
+
         socket.on('nuevo_dato', function(msg) {
-            // msg trae: {'sensor': 'temperature', 'valor': '25.4'}
-            
-            // Buscamos el elemento HTML correspondiente (ej: v-temperature)
-            var idElemento = 'v-' + msg.sensor;
-            var elemento = document.getElementById(idElemento);
+            var el = document.getElementById('v-' + msg.sensor);
+            if (el) {
+                el.innerText = msg.valor;
+                el.style.color = "#27ae60";
+                setTimeout(() => { el.style.color = "#2c3e50"; }, 500);
+            }
 
-            if (elemento) {
-                elemento.innerText = msg.valor;
+            if (charts[msg.sensor]) {
+                const now = new Date();
+                const timeStr = now.getHours().toString().padStart(2,'0') + ':' + 
+                                now.getMinutes().toString().padStart(2,'0') + ':' + 
+                                now.getSeconds().toString().padStart(2,'0');
                 
-                // Efecto visual (parpadeo de color)
-                elemento.style.color = "#27ae60"; // Verde
-                setTimeout(() => { elemento.style.color = "#2c3e50"; }, 300); // Volver a gris oscuro
+                charts[msg.sensor].data.labels.push(timeStr);
+                charts[msg.sensor].data.datasets[0].data.push(parseFloat(msg.valor));
+                charts[msg.sensor].update();
             }
         });
     </script>
-
 </body>
 </html>

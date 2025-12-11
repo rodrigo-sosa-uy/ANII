@@ -1,0 +1,19 @@
+[Unit]
+Description=Cloudflare Tunnel para SCADA Web
+After=network-online.target scada.service
+Wants=network-online.target
+
+[Service]
+User=root
+Group=root
+
+ExecStart=/usr/bin/cloudflared tunnel --url http://localhost:5000
+
+Restart=always
+RestartSec=10
+
+StandardOutput=append:/var/log/scada-tunnel.log
+StandardError=append:/var/log/scada-tunnel.log
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,21 @@
+[Unit]
+Description=Servidor Web SCADA (Flask + SocketIO)
+After=network-online.target mosquitto.service
+Wants=network-online.target
+
+[Service]
+User=root
+Group=root
+
+WorkingDirectory=/home/scada
+
+ExecStart=/usr/bin/python3 -u app.py
+
+Restart=always
+RestartSec=5
+
+StandardOutput=append:/var/log/scada-web.log
+StandardError=append:/var/log/scada-web.log
+
+[Install]
+WantedBy=multi-user.target
