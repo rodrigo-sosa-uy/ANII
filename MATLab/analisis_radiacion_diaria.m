@@ -1,13 +1,11 @@
 % =========================================================================
-% SCRIPT PARA GRAFICAR DATOS DE RADIACIÓN DESDE CSV
+% SCRIPT PARA GRAFICAR DATOS DE RADIACIÓN DESDE CSV (CON AUTOGUARDADO)
 % =========================================================================
 clc; clear; close all;
 
 % --- CONFIGURACIÓN DE USUARIO ---
 % Define la fecha que quieres analizar (Formato: YYYY_MM_DD)
-% El archivo CSV debe llamarse: '2025_11_25_radiation.csv'
-% y debe estar EN LA MISMA CARPETA que este script.
-target_date = '2025_11_25';
+target_date = '2025_11_27';
 
 % -------------------------------------------------------------------------
 
@@ -56,7 +54,9 @@ full_datetime_str = target_date + " " + time_str;
 t = datetime(full_datetime_str, 'InputFormat', 'yyyy_MM_dd HH:mm:ss');
 
 % 5. Graficación
-figure('Name', 'Análisis de Radiación Solar', 'Color', 'w');
+% Guardamos el handle en 'fig' para poder guardarlo después
+fig = figure('Name', 'Análisis de Radiación Solar', 'Color', 'w');
+
 plot(t, radiation_vals, 'LineWidth', 1.5, 'Color', '#D95319'); % Color naranja quemado
 
 % Formato de Ejes
@@ -84,3 +84,16 @@ annotation('textbox', dim, 'String', str, 'FitBoxToText', 'on', ...
 fprintf('--- Estadísticas ---\n');
 fprintf('Radiación Máxima: %.2f W/m^2\n', max_rad);
 fprintf('Radiación Promedio: %.2f W/m^2\n', mean_rad);
+
+% -------------------------------------------------------------------------
+% 7. GUARDAR IMAGEN AUTOMÁTICAMENTE
+% -------------------------------------------------------------------------
+img_name = [target_date, '_analisis_radiacion.png'];
+full_save_path = fullfile(script_path, img_name);
+
+try
+    saveas(fig, full_save_path);
+    fprintf('Imagen guardada automáticamente en: %s\n', full_save_path);
+catch err
+    warning('No se pudo guardar la imagen: %s', err.message);
+end
