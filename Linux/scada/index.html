@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitor IoT en Vivo</title>
+    <!-- Cargamos la librería para comunicación en tiempo real -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            text-align: center;
+            padding: 20px;
+            color: #333;
+        }
+        h1 { margin-bottom: 5px; }
+        p { color: #666; margin-bottom: 30px; }
+        
+        /* Contenedor de las tarjetas */
+        .container {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 20px;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        /* Diseño de cada tarjeta */
+        .card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            width: 250px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .card:hover { 
+            transform: translateY(-5px); 
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+        }
+        
+        .card h2 { margin: 0; font-size: 1.2rem; color: #7f8c8d; text-transform: uppercase; letter-spacing: 1px; }
+        .valor { font-size: 3.5rem; font-weight: bold; margin: 15px 0; color: #2c3e50; }
+        .unidad { font-size: 1rem; color: #95a5a6; font-weight: normal; }
+
+        /* Colores específicos para identificar rápido */
+        .rad { border-bottom: 6px solid #e67e22; } /* Naranja */
+        .temp { border-bottom: 6px solid #e74c3c; } /* Rojo */
+        .hum { border-bottom: 6px solid #3498db; }  /* Azul */
+
+        /* Animación cuando llega un dato */
+        .actualizado { color: #27ae60 !important; transition: color 0.1s; }
+    </style>
+</head>
+<body>
+
+    <h1>📊 Monitor de Sensores en Tiempo Real</h1>
+    <p>Sistema de Telemetría MiniPC - UTEC</p>
+
+    <div class="container">
+        <!-- Tarjeta Radiación -->
+        <div class="card rad">
+            <h2>☀️ Radiación</h2>
+            <div class="valor">
+                <span id="v-radiation">{{ datos.radiation }}</span>
+                <span class="unidad">W/m²</span>
+            </div>
+        </div>
+
+        <!-- Tarjeta Temperatura -->
+        <div class="card temp">
+            <h2>🌡️ Temperatura</h2>
+            <div class="valor">
+                <span id="v-temperature">{{ datos.temperature }}</span>
+                <span class="unidad">°C</span>
+            </div>
+        </div>
+
+        <!-- Tarjeta Humedad -->
+        <div class="card hum">
+            <h2>💧 Humedad</h2>
+            <div class="valor">
+                <span id="v-humidity">{{ datos.humidity }}</span>
+                <span class="unidad">%</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Conectar con el servidor Python
+        var socket = io();
+
+        console.log("Conectando al servidor...");
+
+        socket.on('connect', function() {
+            console.log("¡Conectado exitosamente!");
+        });
+
+        // Escuchar el evento 'nuevo_dato' que envía Python
+        socket.on('nuevo_dato', function(msg) {
+            // msg trae: {'sensor': 'temperature', 'valor': '25.4'}
+            
+            // Buscamos el elemento HTML correspondiente (ej: v-temperature)
+            var idElemento = 'v-' + msg.sensor;
+            var elemento = document.getElementById(idElemento);
+
+            if (elemento) {
+                elemento.innerText = msg.valor;
+                
+                // Efecto visual (parpadeo de color)
+                elemento.style.color = "#27ae60"; // Verde
+                setTimeout(() => { elemento.style.color = "#2c3e50"; }, 300); // Volver a gris oscuro
+            }
+        });
+    </script>
+
+</body>
+</html>
