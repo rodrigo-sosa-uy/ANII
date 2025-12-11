@@ -1,3 +1,22 @@
+##############################################################
+####                Script automático para                ####
+####               la instalación del Scada               ####
+##############################################################
+####                Proyecto Desalinzador                 ####
+##############################################################
+#### Los archivos:                                        ####
+#### - anii.png                                           ####
+#### - app.py                                             ####
+#### - cloudflare.service                                 ####
+#### - index.html                                         ####
+#### - meca.png                                           ####
+#### - notifier.py                                        ####
+#### - notifier.service                                   ####
+#### - scada.service                                      ####
+#### - utec.png                                           ####
+#### deben estar en la carpeta scada.                     ####
+##############################################################
+
 mkdir /home/scada
 mkdir /home/scada/templates
 mkdir /home/scada/static

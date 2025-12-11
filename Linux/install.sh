@@ -14,7 +14,7 @@
 #### - telegram-uploader.service                          ####
 #### - weather-logger.py                                  ####
 #### - weather-logger.service                             ####
-#### deben estar en la misma carpeta que este script.     ####
+#### deben estar en la carpeta installation.              ####
 ##############################################################
 
 ##############################################################

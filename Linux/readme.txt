@@ -21,36 +21,21 @@
 ####             Para instalar automáticamente            ####
 ##############################################################
 
-Se debe tener una carpeta con los archivos:
-- pymqtt-listener.py
-- pymqtt-listener.service
-- data-send.py
-- data-send.service
-- telegram-uploader.py
-- telegram-uploader.service
-- weather-logger.py
-- weather-logger.service
-- install.sh
-
 Abrir una terminal en el escritorio y ejecutar:
 sudo apt update
 sudo apt upgrade -y
 sudo apt install git -y
 sudo apt install mousepad -y
 
+##############################################################
+##############            IMPORTANTE            ##############
+##############################################################
+- Antes de ejecutar el script, recuerda cambiar la contraseña
+  del servidor FTP
+
 Abrir terminal en esa carpeta y ejecutar:
 sudo chmod 777 install.sh
 sudo bash install.sh
-
-Al finalizar, deben haberse movido los archivos:
-- pymqtt-listener.py
-- pymqtt-listener.service
-- data-send.py
-- data-send.service
-- telegram-uploader.py
-- telegram-uploader.service
-- weather-logger.py
-- weather-logger.service
 
 ##############################################################
 ######################### IMPORTANTE #########################
@@ -88,7 +73,6 @@ Para conectarse al escritorio remoto:
   por ejemplo el nombre de la conexión o la IP asignada.
 
 Abrir terminal en esa carpeta y ejecutar:
-sudo chmod 777 net.sh
 sudo bash net.sh
 
 Este script debe asignar una IP estática al dispositivo.
@@ -101,3 +85,20 @@ sudo nmcli
 
 Finalmente puede comprobar si sigue teniendo acceso a internet
 con esta nueva IP, desde un navegador.
+
+##############################################################
+######################### IMPORTANTE #########################
+##############################################################
+####    Ejecutar solamente después de haber realizado     ####
+####               la configuración de red                ####
+##############################################################
+####               Para configurar el Scada               ####
+##############################################################
+
+Abrir terminal en esa carpeta y ejecutar:
+sudo bash scada.sh
+
+La página web es accesible localmente desde 192.168.101.250:5000
+
+Luego de la instalación, se notifica mediante Telegram el enlace
+temporal para acceso a través de internet.
