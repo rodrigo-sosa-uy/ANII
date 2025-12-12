@@ -216,6 +216,8 @@ sudo pip3 install keyboard
 sudo mkdir -p /home/log
 sudo chmod 777 /home/log
 
+sudo mv dev/switch-monitor.py /usr/local/bin/
+
 ##############################################################
 ####                Finaliza la ejecucíon                 ####
 ##############################################################
