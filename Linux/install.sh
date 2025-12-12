@@ -43,6 +43,22 @@ sudo apt install -y mosquitto mosquitto-dev mosquitto-clients
 #sudo systemctl start mosquitto
 
 ##############################################################
+######################### IMPORTANTE #########################
+##############################################################
+#### - Directorios y Scripts auxiliares                  #####
+##############################################################
+
+#Se crea el directorio para el log:
+sudo mkdir -p /home/log
+sudo chmod 777 /home/log
+
+sudo mv dev/switch-monitor.py /usr/local/bin/
+sudo mv dev/setup-headless.py /usr/local/bin/
+
+sudo chmod 777 net.sh
+sudo chmod 777 scada.sh
+
+##############################################################
 ####           Ubicación de pymqtt-listener.py            ####
 ##############################################################
 
@@ -173,6 +189,25 @@ else
     echo "⚠️  No se encontró weather-logger.service en el directorio"
 fi
 
+##############################################################
+####                 Para instalar python                 ####
+##############################################################
+
+#Para instalar Python:
+#sudo apt install -y python3
+sudo apt install -y python3-pip
+
+#Para instalar los módulos requeridos:
+sudo apt install python3-paho-mqtt -y
+sudo apt install python3-requests -y
+sudo apt install python3-pandas -y
+sudo apt install python3-matplotlib -y
+sudo pip3 install keyboard
+
+##############################################################
+####               Para configurar mosquitto              ####
+##############################################################
+
 #Para que pueda escuchar en la red:
 #En la carpeta /etc/mosquitto/conf.d, crear el archivo re.conf
 
@@ -192,33 +227,6 @@ sudo systemctl restart mosquitto
 #netstat -an | grep tcp
 
 ##############################################################
-####                 Para instalar python                 ####
-##############################################################
-
-#Para instalar Python:
-#sudo apt install -y python3
-sudo apt install -y python3-pip
-
-#Para instalar los módulos requeridos:
-sudo apt install python3-paho-mqtt -y
-sudo apt install python3-requests -y
-sudo apt install python3-pandas -y
-sudo apt install python3-matplotlib -y
-sudo pip3 install keyboard
-
-##############################################################
-######################### IMPORTANTE #########################
-##############################################################
-#### - pymqtt-listener.py: escribe un timestamp en csv   #####
-##############################################################
-
-#Se crea el directorio para el csv:
-sudo mkdir -p /home/log
-sudo chmod 777 /home/log
-
-sudo mv dev/switch-monitor.py /usr/local/bin/
-
-##############################################################
 ####                Finaliza la ejecucíon                 ####
 ##############################################################
 
@@ -226,12 +234,7 @@ echo "##############################################################"
 echo "################### Instalación finalizada ###################"
 echo "##############################################################"
 echo "#### En caso de no haber errores, puede proseguir con la  ####"
-echo "#### ejecucion de net.sh y wifi.sh (solo si lo requiere)  ####"
+echo "####           ejecucion de net.sh y scada.sh             ####"
 echo "##############################################################"
-
-cd ~/Desktop/ANII/Linux
-
-sudo chmod 777 net.sh
-sudo chmod 777 scada.sh
 
 ##############################################################
