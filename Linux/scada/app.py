@@ -10,7 +10,7 @@ import logging
 from datetime import datetime
 
 # =========================================================
-# CONFIGURACIÓN DE LOGGING (MENSUAL)
+# CONFIGURACIÓN DE LOGGING
 # =========================================================
 LOG_DIR_BASE = '/home/log'
 current_month_str = datetime.now().strftime('%Y_%m')
@@ -40,13 +40,16 @@ socketio = SocketIO(app, cors_allowed_origins='*', async_mode='eventlet')
 BROKER = "localhost"
 PORT = 1883
 
-# Tópicos V2.0 Completos (Sensores + Control)
+# Tópicos a escuchar (Sensores + CONTROL para Feedback)
 TOPICS = [
     "measure/environment", 
     "measure/radiation",   
     "measure/temperature", 
     "measure/level_in",    
-    "measure/level_out"    
+    "measure/level_out",
+    "control/in_valve",    # Escuchamos para saber el estado real
+    "control/out_valve",
+    "control/process"
 ]
 
 # Memoria temporal (Estado actual)
@@ -56,11 +59,17 @@ last_data = {
     "lvl_in_weight": "--",
     "int_temp": "--",
     "lvl_out_dist": "--",
+    
     # Variables Ambiente
     "radiation": "--",
     "env_temp": "--",
     "env_hum": "--",
-    "env_pres": "--"
+    "env_pres": "--",
+    
+    # Estados de Actuadores (Feedback)
+    "in_valve": "0",   # 0: Cerrada, 1: Abierta
+    "out_valve": "0",
+    "process": "0"     # 0: Stop, 1: Start
 }
 
 # =========================================================
@@ -121,6 +130,7 @@ def on_message(client, userdata, msg):
         topic = msg.topic
         payload = msg.payload.decode()
         
+        # --- SENSORES ---
         if topic == "measure/environment":
             parts = payload.split(',')
             if len(parts) >= 3:
@@ -145,6 +155,16 @@ def on_message(client, userdata, msg):
         elif topic == "measure/temperature":
             update_and_emit('int_temp', payload)
             
+        # --- CONTROL (FEEDBACK DE ESTADO) ---
+        elif topic == "control/in_valve":
+            update_and_emit('in_valve', payload)
+            
+        elif topic == "control/out_valve":
+            update_and_emit('out_valve', payload)
+            
+        elif topic == "control/process":
+            update_and_emit('process', payload)
+            
     except Exception as e:
         logging.error(f"Error MQTT: {e}")
 
@@ -163,20 +183,15 @@ except Exception as e:
     logging.critical(f"❌ Error fatal MQTT: {e}")
 
 # =========================================================
-# SOCKETIO - CONTROL DE PROCESO
+# SOCKETIO
 # =========================================================
 @socketio.on('control_cmd')
 def handle_control_command(json_data):
-    """
-    Recibe comandos desde la Web y los publica en MQTT
-    json_data: {'topic': 'control/in_valve', 'payload': '1'}
-    """
     try:
         topic = json_data.get('topic')
         payload = json_data.get('payload')
         
         if topic and payload is not None:
-            # Publicar al Wemos
             client.publish(topic, str(payload))
             log(f"🎮 Comando Web -> MQTT: [{topic}] = {payload}")
             

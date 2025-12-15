@@ -48,8 +48,8 @@ const unsigned long INTERVAL_PROCESS = 15 * 1000;       // 15 Segundos
 #define MAX_CS          D7
 
 // ACTUADORES
-#define PIN_RELAY_IN    D9  
-#define PIN_RELAY_OUT   D10 
+#define PIN_RELAY_IN    1
+#define PIN_RELAY_OUT   3
 
 // NIVEL ENTRADA (HX711)
 #define HX_IN_DT        D2  

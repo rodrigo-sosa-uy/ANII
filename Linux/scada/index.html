@@ -16,7 +16,7 @@
             overflow-x: hidden; transition: margin-right .5s;
         }
         
-        /* HEADER & SIDEBAR (Igual que antes) */
+        /* HEADER & SIDEBAR */
         .header { background-color: white; padding: 10px 40px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 30px; width: 100%; box-sizing: border-box; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
         .header-left, .header-right { flex: 1; display: flex; align-items: center; }
         .header-right { justify-content: flex-end; gap: 25px; }
@@ -49,7 +49,7 @@
         .tmp { border-top: 5px solid #e74c3c; }
         .rad { border-top: 5px solid #e67e22; }
         .env { border-top: 5px solid #2ecc71; }
-        .ctrl { border-top: 5px solid #9b59b6; } /* Color para controles */
+        .ctrl { border-top: 5px solid #9b59b6; } 
 
         .section-title { grid-column: 1 / -1; text-align: left; margin-top: 20px; margin-bottom: 10px; font-size: 1.2rem; color: #2c3e50; border-bottom: 2px solid #ecf0f1; padding-bottom: 5px; }
         .view-section { display: none; animation: fadeIn 0.5s; }
@@ -65,7 +65,7 @@
         .btn-login:hover { background-color: #34495e; }
         .error-msg { color: #e74c3c; margin-top: 10px; display: none; }
 
-        /* --- ESTILOS CONTROL --- */
+        /* --- ESTILOS CONTROL & FEEDBACK --- */
         .ctrl-btn-group { display: flex; gap: 10px; margin-top: 15px; justify-content: center; }
         .btn-ctrl { flex: 1; padding: 10px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; transition: 0.2s; color: white; opacity: 0.6; }
         .btn-green { background-color: #2ecc71; }
@@ -78,6 +78,21 @@
         .mode-indicator { font-size: 0.9rem; margin-top: 5px; font-weight: bold; }
         .mode-auto { color: #3498db; }
         .mode-manual { color: #e67e22; }
+
+        /* --- NUEVO: INDICADOR DE ESTADO VÁLVULA --- */
+        .status-badge {
+            margin-top: 10px;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9rem;
+            display: inline-block;
+            color: white;
+            transition: background 0.3s;
+        }
+        .status-open { background-color: #2ecc71; }
+        .status-closed { background-color: #e74c3c; }
+        .status-unknown { background-color: #95a5a6; }
 
     </style>
 </head>
@@ -100,106 +115,50 @@
         </div>
         <div class="header-right">
             <img src="/static/anii.png" alt="ANII" class="logo">
-            <button class="menu-btn" onclick="openNav()">☰</button>
+            <button class="menu-btn" onclick="openNav()" title="Abrir Menú">☰</button>
         </div>
     </div>
 
-    <!-- ================= VISTA MONITOREO (Solo Lectura) ================= -->
+    <!-- ================= VISTA MONITOREO ================= -->
     <div id="view-monitor" class="view-section view-active">
         <div class="grid-container">
             <div class="section-title">🏭 Variables de Proceso</div>
-            <!-- Fila 1 -->
-            <div class="card lvl">
-                <h2>📥 Nivel Entrada</h2>
-                <div class="valor"><span id="v-lvl_in_dist">{{ datos.lvl_in_dist }}</span> <span class="unidad">cm</span></div>
-                <div class="chart-container"><canvas id="chart-lvl_in_dist"></canvas></div>
-            </div>
-            <div class="card lvl">
-                <h2>⚖️ Cantidad Cámara</h2>
-                <div class="valor"><span id="v-lvl_in_weight">{{ datos.lvl_in_weight }}</span> <span class="unidad">kg</span></div>
-                <div class="chart-container"><canvas id="chart-lvl_in_weight"></canvas></div>
-            </div>
-            <div class="card tmp">
-                <h2>🌡️ Temp. Cámara</h2>
-                <div class="valor"><span id="v-int_temp">{{ datos.int_temp }}</span> <span class="unidad">°C</span></div>
-                <div class="chart-container"><canvas id="chart-int_temp"></canvas></div>
-            </div>
-            <div class="card lvl">
-                <h2>📤 Nivel Salida</h2>
-                <div class="valor"><span id="v-lvl_out_dist">{{ datos.lvl_out_dist }}</span> <span class="unidad">cm</span></div>
-                <div class="chart-container"><canvas id="chart-lvl_out_dist"></canvas></div>
-            </div>
+            <div class="card lvl"><h2>📥 Nivel Entrada</h2><div class="valor"><span id="v-lvl_in_dist">{{ datos.lvl_in_dist }}</span> <span class="unidad">cm</span></div><div class="chart-container"><canvas id="chart-lvl_in_dist"></canvas></div></div>
+            <div class="card lvl"><h2>⚖️ Cantidad Cámara</h2><div class="valor"><span id="v-lvl_in_weight">{{ datos.lvl_in_weight }}</span> <span class="unidad">kg</span></div><div class="chart-container"><canvas id="chart-lvl_in_weight"></canvas></div></div>
+            <div class="card tmp"><h2>🌡️ Temp. Cámara</h2><div class="valor"><span id="v-int_temp">{{ datos.int_temp }}</span> <span class="unidad">°C</span></div><div class="chart-container"><canvas id="chart-int_temp"></canvas></div></div>
+            <div class="card lvl"><h2>📤 Nivel Salida</h2><div class="valor"><span id="v-lvl_out_dist">{{ datos.lvl_out_dist }}</span> <span class="unidad">cm</span></div><div class="chart-container"><canvas id="chart-lvl_out_dist"></canvas></div></div>
 
             <div class="section-title">🌤️ Condiciones Ambientales</div>
-            <!-- Fila 2 -->
-            <div class="card rad">
-                <h2>☀️ Radiación</h2>
-                <div class="valor"><span id="v-radiation">{{ datos.radiation }}</span> <span class="unidad">W/m²</span></div>
-                <div class="chart-container"><canvas id="chart-radiation"></canvas></div>
-            </div>
-            <div class="card env">
-                <h2>🌡️ Temp. Ambiente</h2>
-                <div class="valor"><span id="v-env_temp">{{ datos.env_temp }}</span> <span class="unidad">°C</span></div>
-                <div class="chart-container"><canvas id="chart-env_temp"></canvas></div>
-            </div>
-            <div class="card env">
-                <h2>💧 Humedad</h2>
-                <div class="valor"><span id="v-env_hum">{{ datos.env_hum }}</span> <span class="unidad">%</span></div>
-                <div class="chart-container"><canvas id="chart-env_hum"></canvas></div>
-            </div>
-            <div class="card env">
-                <h2>⏲️ Presión</h2>
-                <div class="valor"><span id="v-env_pres">{{ datos.env_pres }}</span> <span class="unidad">hPa</span></div>
-                <div class="chart-container"><canvas id="chart-env_pres"></canvas></div>
-            </div>
+            <div class="card rad"><h2>☀️ Radiación</h2><div class="valor"><span id="v-radiation">{{ datos.radiation }}</span> <span class="unidad">W/m²</span></div><div class="chart-container"><canvas id="chart-radiation"></canvas></div></div>
+            <div class="card env"><h2>🌡️ Temp. Ambiente</h2><div class="valor"><span id="v-env_temp">{{ datos.env_temp }}</span> <span class="unidad">°C</span></div><div class="chart-container"><canvas id="chart-env_temp"></canvas></div></div>
+            <div class="card env"><h2>💧 Humedad</h2><div class="valor"><span id="v-env_hum">{{ datos.env_hum }}</span> <span class="unidad">%</span></div><div class="chart-container"><canvas id="chart-env_hum"></canvas></div></div>
+            <div class="card env"><h2>⏲️ Presión</h2><div class="valor"><span id="v-env_pres">{{ datos.env_pres }}</span> <span class="unidad">hPa</span></div><div class="chart-container"><canvas id="chart-env_pres"></canvas></div></div>
         </div>
     </div>
 
-    <!-- ================= VISTA CONTROL (Protegida) ================= -->
+    <!-- ================= VISTA CONTROL ================= -->
     <div id="view-control" class="view-section">
         
-        <!-- PANTALLA LOGIN -->
         <div id="login-screen">
             <h2>🔐 Acceso Restringido</h2>
             <p>Ingrese credenciales de operador</p>
-            <div class="input-group">
-                <label>Usuario</label>
-                <input type="text" id="login-user">
-            </div>
-            <div class="input-group">
-                <label>Contraseña</label>
-                <input type="password" id="login-pass">
-            </div>
+            <div class="input-group"><label>Usuario</label><input type="text" id="login-user"></div>
+            <div class="input-group"><label>Contraseña</label><input type="password" id="login-pass"></div>
             <button class="btn-login" onclick="checkLogin()">Ingresar</button>
             <p id="login-error" class="error-msg">Credenciales incorrectas</p>
         </div>
 
-        <!-- PANEL DE CONTROL (Oculto inicialmente) -->
         <div id="control-dashboard" style="display: none;">
             <div class="grid-container">
                 
                 <div class="section-title">🏭 Estado del Proceso (Tiempo Real)</div>
-                <!-- Copia de las variables clave para referencia visual -->
-                <div class="card lvl">
-                    <h2>📥 Nivel Entrada</h2>
-                    <div class="valor"><span id="c-lvl_in_dist">--</span> <span class="unidad">cm</span></div>
-                </div>
-                <div class="card lvl">
-                    <h2>⚖️ Cantidad Cámara</h2>
-                    <div class="valor"><span id="c-lvl_in_weight">--</span> <span class="unidad">kg</span></div>
-                </div>
-                <div class="card tmp">
-                    <h2>🌡️ Temp. Cámara</h2>
-                    <div class="valor"><span id="c-int_temp">--</span> <span class="unidad">°C</span></div>
-                </div>
-                <div class="card lvl">
-                    <h2>📤 Nivel Salida</h2>
-                    <div class="valor"><span id="c-lvl_out_dist">--</span> <span class="unidad">cm</span></div>
-                </div>
+                <div class="card lvl"><h2>📥 Nivel Entrada</h2><div class="valor"><span id="c-lvl_in_dist">--</span> <span class="unidad">cm</span></div></div>
+                <div class="card lvl"><h2>⚖️ Cantidad Cámara</h2><div class="valor"><span id="c-lvl_in_weight">--</span> <span class="unidad">kg</span></div></div>
+                <div class="card tmp"><h2>🌡️ Temp. Cámara</h2><div class="valor"><span id="c-int_temp">--</span> <span class="unidad">°C</span></div></div>
+                <div class="card lvl"><h2>📤 Nivel Salida</h2><div class="valor"><span id="c-lvl_out_dist">--</span> <span class="unidad">cm</span></div></div>
 
                 <div class="section-title">🎛️ Centro de Comando</div>
 
-                <!-- 1. SELECTOR DE MODO -->
                 <div class="card ctrl">
                     <h2>🤖 Modo de Operación</h2>
                     <div class="mode-indicator" id="mode-text">AUTO</div>
@@ -209,27 +168,30 @@
                     </div>
                 </div>
 
-                <!-- 2. CONTROL DE PROCESO (START/STOP) -->
                 <div class="card ctrl">
                     <h2>🚀 Proceso General</h2>
+                    <!-- Status Process: ON/OFF -->
+                    <div class="status-badge status-unknown" id="status-process">Estado: --</div>
                     <div class="ctrl-btn-group">
                         <button class="btn-ctrl btn-green" id="btn-proc-start" onclick="sendCommand('control/process', 1, this)">START</button>
                         <button class="btn-ctrl btn-red" id="btn-proc-stop" onclick="sendCommand('control/process', 0, this)">STOP</button>
                     </div>
                 </div>
 
-                <!-- 3. VÁLVULA ENTRADA -->
                 <div class="card ctrl">
                     <h2>🚰 Válvula Entrada</h2>
+                    <!-- Status Válvula: ABIERTA/CERRADA -->
+                    <div class="status-badge status-closed" id="status-in_valve">Estado: CERRADA</div>
                     <div class="ctrl-btn-group">
                         <button class="btn-ctrl btn-green valve-btn" onclick="sendCommand('control/in_valve', 1, this)">ABRIR</button>
                         <button class="btn-ctrl btn-red valve-btn" onclick="sendCommand('control/in_valve', 0, this)">CERRAR</button>
                     </div>
                 </div>
 
-                <!-- 4. VÁLVULA SALIDA -->
                 <div class="card ctrl">
                     <h2>🚰 Válvula Salida</h2>
+                    <!-- Status Válvula: ABIERTA/CERRADA -->
+                    <div class="status-badge status-closed" id="status-out_valve">Estado: CERRADA</div>
                     <div class="ctrl-btn-group">
                         <button class="btn-ctrl btn-green valve-btn" onclick="sendCommand('control/out_valve', 1, this)">ABRIR</button>
                         <button class="btn-ctrl btn-red valve-btn" onclick="sendCommand('control/out_valve', 0, this)">CERRAR</button>
@@ -242,9 +204,8 @@
 
     <script>
         var socket = io();
-        var isManualMode = false; // Estado local del modo
+        var isManualMode = false;
 
-        // --- NAVEGACIÓN ---
         function openNav() { document.getElementById("mySidebar").style.width = "280px"; }
         function closeNav() { document.getElementById("mySidebar").style.width = "0"; }
         function showView(viewName) {
@@ -253,51 +214,64 @@
             closeNav();
         }
 
-        // --- LOGIN ---
         function checkLogin() {
             var u = document.getElementById('login-user').value;
             var p = document.getElementById('login-pass').value;
             if(u === 'rodrigo.sosa' && p === 'proyecto-anii') {
                 document.getElementById('login-screen').style.display = 'none';
                 document.getElementById('control-dashboard').style.display = 'block';
-                // Inicializar estado de botones en Auto
                 setMode('auto');
             } else {
                 document.getElementById('login-error').style.display = 'block';
             }
         }
 
-        // --- LÓGICA DE CONTROL ---
         function setMode(mode) {
             isManualMode = (mode === 'manual');
-            
-            // Actualizar botones de modo
             document.getElementById('btn-auto').className = isManualMode ? 'btn-ctrl btn-blue' : 'btn-ctrl btn-blue btn-active';
             document.getElementById('btn-manual').className = isManualMode ? 'btn-ctrl btn-blue btn-active' : 'btn-ctrl btn-blue';
-            
             var textEl = document.getElementById('mode-text');
             textEl.innerText = isManualMode ? "MANUAL (Control habilitado)" : "AUTO (Control bloqueado)";
             textEl.className = "mode-indicator " + (isManualMode ? "mode-manual" : "mode-auto");
-
-            // Habilitar/Deshabilitar botones de válvulas
-            var valveBtns = document.querySelectorAll('.valve-btn');
-            valveBtns.forEach(btn => {
-                if(isManualMode) btn.classList.remove('btn-disabled');
-                else btn.classList.add('btn-disabled');
+            document.querySelectorAll('.valve-btn').forEach(btn => {
+                if(isManualMode) btn.classList.remove('btn-disabled'); else btn.classList.add('btn-disabled');
             });
         }
 
         function sendCommand(topic, payload, btnElement) {
-            // Animación visual de pulsación
             if(btnElement) {
                 btnElement.style.transform = "scale(0.95)";
                 setTimeout(() => btnElement.style.transform = "scale(1)", 150);
             }
-            // Enviar al Backend
             socket.emit('control_cmd', {topic: topic, payload: payload});
         }
 
-        // --- GRÁFICOS (Chart.js) ---
+        // --- ACTUALIZACIÓN UI (Sensores y Control) ---
+        function updateStatusUI(sensor, value) {
+            var statusEl = document.getElementById('status-' + sensor);
+            if(statusEl) {
+                // LOGICA DIFERENCIADA PARA PROCESO vs VÁLVULAS
+                if (sensor === 'process') {
+                    if(value == '1') {
+                        statusEl.innerText = "Estado: ON";
+                        statusEl.className = "status-badge status-open";
+                    } else {
+                        statusEl.innerText = "Estado: OFF";
+                        statusEl.className = "status-badge status-closed";
+                    }
+                } else {
+                    // Válvulas
+                    if(value == '1') {
+                        statusEl.innerText = "Estado: ABIERTA";
+                        statusEl.className = "status-badge status-open";
+                    } else {
+                        statusEl.innerText = "Estado: CERRADA";
+                        statusEl.className = "status-badge status-closed";
+                    }
+                }
+            }
+        }
+
         const commonOptions = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { beginAtZero: false } }, elements: { point: { radius: 0 } }, animation: false };
         function createChart(id, color) { return new Chart(document.getElementById(id), { type: 'line', data: { labels: [], datasets: [{ data: [], borderColor: color, backgroundColor: color + '33', borderWidth: 2, fill: true, tension: 0.4 }] }, options: commonOptions }); }
 
@@ -312,7 +286,6 @@
             env_pres: createChart('chart-env_pres', '#2ecc71')
         };
 
-        // Cargar Historial
         fetch('/api/history').then(res => res.json()).then(data => {
             Object.keys(data).forEach(key => {
                 if (charts[key] && data[key]) {
@@ -325,17 +298,14 @@
             });
         });
 
-        // Actualización Real-Time
         socket.on('nuevo_dato', function(msg) {
-            // Actualizar en Monitor
+            // Actualizar Texto Sensor
             var el = document.getElementById('v-' + msg.sensor);
             if (el) { el.innerText = msg.valor; el.style.color = "#27ae60"; setTimeout(() => { el.style.color = "#2c3e50"; }, 500); }
-            
-            // Actualizar en Panel Control (si existe)
             var elCtrl = document.getElementById('c-' + msg.sensor);
             if (elCtrl) { elCtrl.innerText = msg.valor; }
 
-            // Gráficos
+            // Actualizar Gráfico Sensor
             if (charts[msg.sensor]) {
                 const now = new Date();
                 const timeStr = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0') + ':' + now.getSeconds().toString().padStart(2,'0');
@@ -344,7 +314,17 @@
                 if (charts[msg.sensor].data.labels.length > 200) { charts[msg.sensor].data.labels.shift(); charts[msg.sensor].data.datasets[0].data.shift(); }
                 charts[msg.sensor].update();
             }
+
+            // Actualizar Estado Control (Válvulas y Proceso)
+            if (msg.sensor === 'in_valve' || msg.sensor === 'out_valve' || msg.sensor === 'process') {
+                updateStatusUI(msg.sensor, msg.valor);
+            }
         });
+        
+        // Inicializar estados conocidos
+        updateStatusUI('in_valve', '{{ datos.in_valve }}');
+        updateStatusUI('out_valve', '{{ datos.out_valve }}');
+        updateStatusUI('process', '{{ datos.process }}');
     </script>
 </body>
 </html>
