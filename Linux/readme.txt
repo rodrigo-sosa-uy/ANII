@@ -43,13 +43,12 @@ sudo bash install.sh
 ####    Asegurese de que el servicio de RustDesk está     ####
 ####  corriendo efectivamente, al abrir la interfaz de    ####
 ####  la aplicación deberá decir "Stop Service", en caso  ####
-####       de decir "Start Service", haga click ahí       ####
+####       de decir "Start Service", haga clic ahí        ####
 ##############################################################
 
 - Abra RustDesk desde el menú de aplicaciones.
 - Anote el ID (número largo).
-- A la derecha verás tres puntos verticales (Menú) o un icono
-  de lápiz/escudo junto a la contraseña.
+- Debajo verás un icono de lápiz/escudo junto a la contraseña.
 - Haz clic para editar la contraseña.
 - Marca la casilla "Enable permanent password" (Habilitar
   contraseña permanente) y pon una clave segura.

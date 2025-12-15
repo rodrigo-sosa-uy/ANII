@@ -1,14 +1,11 @@
 /*
  * -----------------------------------------------------------------------
- * SISTEMA INTEGRAL SCADA - WEMOS D1 R2 (VERSIÓN DOBLE NIVEL)
+ * SISTEMA INTEGRAL SCADA - WEMOS D1 R2 (VERSIÓN 2.0)
  * -----------------------------------------------------------------------
- * Mapeo de Hardware:
- * - I2C (D3/D4): BME280 (Ambiente) + ADS1115 (Radiación)
- * - SPI (D5/D6/D7): 1x MAX6675 (Temp Interna)
- * - GPIO:
- * - D9, D10: Relés (Válvulas)
- * - D2, D8: HX711 (Peso)
- * - D1, D0: HC-SR04 (Distancia) -> ¡Usa pines Serial!
+ * Cambios V2:
+ * - Tópicos de nivel separados (level_in / level_out)
+ * - Tópico de control de proceso general (control/process)
+ * - Estructura preparada para expansión futura
  * -----------------------------------------------------------------------
  */
 
@@ -26,45 +23,41 @@
 // =========================================================
 // 1. CONFIGURACIÓN DEL SISTEMA
 // =========================================================
-// Poner en 0 si usas los pines D0/D1 para el sensor, ya que bloquean el Serial
-#define DEBUG_MODE 0       
+#define DEBUG_MODE 0       // 0 OBLIGATORIO si usas pines TX/RX para sensores
 
 // --- RED Y MQTT ---
 #define MQTT_SERVER "192.168.101.250"
 #define MQTT_PORT 1883
-#define MQTT_CLIENT_ID "Wemos_Control_SO"
+#define MQTT_CLIENT_ID "Wemos_SO"
 
-// --- TEMPORIZADORES (Milisegundos) ---
+// --- TEMPORIZADORES ---
 const unsigned long INTERVAL_METEO   = 15 * 60 * 1000; // 15 Minutos
-const unsigned long INTERVAL_PROCESS = 2 * 1000;       // 2 Segundos
+const unsigned long INTERVAL_PROCESS = 15 * 1000;       // 15 Segundos
 
 // =========================================================
 // 2. MAPEO DE PINES (WEMOS D1 R2)
 // =========================================================
 
-// --- I2C BUS ---
+// I2C (BME + ADS)
 #define PIN_I2C_SDA     D4
 #define PIN_I2C_SCL     D3
 
-// --- TERMOCUPLA (SPI) ---
+// TERMOCUPLA (SPI SW)
 #define MAX_SCK         D5
 #define MAX_SO          D6
-#define MAX_CS          D7  // Solo una termocupla
+#define MAX_CS          D7
 
-// --- ACTUADORES (RELÉS) ---
-// Usamos D9 y D10
+// ACTUADORES
 #define PIN_RELAY_IN    D9  
 #define PIN_RELAY_OUT   D10 
 
-// --- NIVEL: PESO (HX711) ---
-// Usamos D2 y D8
-#define HX_DT           D2  
-#define HX_SCK          D8  
+// NIVEL ENTRADA (HX711)
+#define HX_IN_DT        D2  
+#define HX_IN_SCK       D8  
 
-// --- NIVEL: DISTANCIA (ULTRASONIDO) ---
-// Usamos los pines del puerto Serial (TX/RX)
-#define US_TRIG         D1  // TX
-#define US_ECHO         D0  // RX
+// NIVEL ENTRADA (ULTRASONIDO) -> Pines Serial
+#define US_IN_TRIG      D1  // TX
+#define US_IN_ECHO      D0  // RX
 
 // =========================================================
 // 3. OBJETOS Y VARIABLES
@@ -76,33 +69,46 @@ PubSubClient mqttClient(espClient);
 Adafruit_BME280 bme;
 Adafruit_ADS1115 ads;
 MAX6675 thermocouple(MAX_SCK, MAX_CS, MAX_SO);
-HX711 scale;
+HX711 scaleIn;
 
+// Estado del Sistema
 struct State {
   float temp_amb;
   float hum_amb;
   float pres_amb;
   float radiation;
-  float temp_int;     // Solo una temp interna
-  float level_weight; // Peso en Kg
-  float level_dist;   // Distancia en cm
+  float temp_int;
+  
+  // Nivel Entrada
+  float lvl_in_weight;
+  float lvl_in_dist;
+  
+  // Nivel Salida (Futuro)
+  float lvl_out_weight;
+  float lvl_out_dist;
+
+  // Estado del Proceso
+  bool process_active; // True = ON, False = OFF
 } sysState;
 
 unsigned long lastMeteoTime = 0;
 unsigned long lastProcessTime = 0;
 
-// Calibración
+// Constantes
 const float PYR_GAIN = 0.0078125;
 const float PYR_CAL = 70.9e-3;
-const float SCALE_CAL = 2280.0; // AJUSTAR CON PESO CONOCIDO
+const float SCALE_CAL = 2280.0;
 
-// Tópicos Definitivos
-const char* TP_MEAS_TEMP = "measure/temperature";   // Dato único: Temp Interna
-const char* TP_MEAS_RAD  = "measure/radiation";     // Dato único: Radiación
-const char* TP_MEAS_ENV  = "measure/environment";   // CSV: TempAmb, Hum, Presion
-const char* TP_MEAS_LVL  = "measure/level";         // CSV: Peso, Distancia
-const char* TP_CTRL_IN   = "control/in_valve";
-const char* TP_CTRL_OUT  = "control/out_valve";
+// --- DEFINICIÓN DE TÓPICOS (V2.0) ---
+const char* TP_MEAS_ENV      = "measure/environment";   // T,H,P
+const char* TP_MEAS_RAD      = "measure/radiation";     // Rad
+const char* TP_MEAS_TEMP     = "measure/temperature";   // T_Int
+const char* TP_MEAS_LVL_IN   = "measure/level_in";      // Peso,Dist (Entrada)
+const char* TP_MEAS_LVL_OUT  = "measure/level_out";     // Peso,Dist (Salida)
+
+const char* TP_CTRL_IN       = "control/in_valve";
+const char* TP_CTRL_OUT      = "control/out_valve";
+const char* TP_CTRL_PROCESS  = "control/process";       // General Start/Stop
 
 // =========================================================
 // 4. SETUP
@@ -110,26 +116,30 @@ const char* TP_CTRL_OUT  = "control/out_valve";
 void setup() {
   if (DEBUG_MODE) {
     Serial.begin(115200);
-    Serial.println("\n>>> INICIO <<<");
+    Serial.println("INIT");
   }
 
-  // Configurar Pines
+  // Pines Salida
   pinMode(PIN_RELAY_IN, OUTPUT);
   pinMode(PIN_RELAY_OUT, OUTPUT);
   digitalWrite(PIN_RELAY_IN, LOW);
   digitalWrite(PIN_RELAY_OUT, LOW);
 
-  pinMode(US_TRIG, OUTPUT);
-  pinMode(US_ECHO, INPUT);
+  pinMode(US_IN_TRIG, OUTPUT);
+  pinMode(US_IN_ECHO, INPUT);
 
-  // Iniciar Módulos
+  // Estado inicial
+  sysState.process_active = false;
+  sysState.lvl_out_weight = 0.0; // Placeholder futuro
+  sysState.lvl_out_dist = 0.0;   // Placeholder futuro
+
   initWiFi();
   initMQTT();
   initSensors();
 }
 
 // =========================================================
-// 5. LOOP PRINCIPAL
+// 5. LOOP
 // =========================================================
 void loop() {
   if (!mqttClient.connected()) { reconnect(); }
@@ -137,38 +147,51 @@ void loop() {
 
   unsigned long now = millis();
 
-  // Tarea Lenta (Ambiente)
+  // --- TAREA AMBIENTAL (Lenta) ---
   if (now - lastMeteoTime > INTERVAL_METEO) {
     lastMeteoTime = now;
     measureEnvironment();
     measureRadiation();
-    
+
     pubEnvironment();
     pubRadiation();
+
+    if (!sysState.process_active){
+      measureInternalTemp();
+      measureLevelIn();
+      // measureLevelOut(); // Futuro
+
+      pubInternalTemp();
+      pubLevelIn();
+      //pubLevelOut(); // Futuro
+    }
   }
 
-  // Tarea Rápida (Proceso)
-  if (now - lastProcessTime > INTERVAL_PROCESS) {
-    lastProcessTime = now;
-    measureInternalTemp();
-    measureLevel();
+  // --- TAREA PROCESO (Rápida) ---
+  if (sysState.process_active) {
+    if (now - lastProcessTime > INTERVAL_PROCESS) {
+      lastProcessTime = now;
+      measureInternalTemp();
+      measureLevelIn();
+      // measureLevelOut(); // Futuro
 
-    pubInternalTemp();
-    pubLevel();
+      pubInternalTemp();
+      pubLevelIn();
+      //pubLevelOut(); // Futuro
+    }
+
+    // Aca va la lógica de control, apertura de valvula controlada
   }
 }
 
 // =========================================================
-// 6. INICIALIZACIÓN
+// 6. INIT SUBSISTEMAS
 // =========================================================
 void initWiFi() {
   wifiMulti.addAP("Wifi para pobres", "1234567890");
   wifiMulti.addAP("Rodriagus", "coquito15");
   wifiMulti.addAP("UTEC-Invitados", "");
-
-  while (wifiMulti.run() != WL_CONNECTED) {
-    delay(500);
-  }
+  while (wifiMulti.run() != WL_CONNECTED) { delay(500); }
 }
 
 void initMQTT() {
@@ -178,15 +201,14 @@ void initMQTT() {
 
 void initSensors() {
   Wire.begin(PIN_I2C_SDA, PIN_I2C_SCL);
-
-  if (!bme.begin(0x76)) { /* Error BME */ }
+  if (!bme.begin(0x76)) { /* Err */ }
   
   ads.setGain(GAIN_SIXTEEN);
-  if (!ads.begin()) { /* Error ADS */ }
+  if (!ads.begin()) { /* Err */ }
 
-  scale.begin(HX_DT, HX_SCK);
-  scale.set_scale(SCALE_CAL);
-  scale.tare(); // Asume tanque vacío al iniciar
+  scaleIn.begin(HX_IN_DT, HX_IN_SCK);
+  scaleIn.set_scale(SCALE_CAL);
+  scaleIn.tare();
 }
 
 // =========================================================
@@ -214,24 +236,19 @@ void measureInternalTemp() {
   if (isnan(sysState.temp_int)) sysState.temp_int = -1.0;
 }
 
-void measureLevel() {
-  // 1. Ultrasonido
-  digitalWrite(US_TRIG, LOW); delayMicroseconds(2);
-  digitalWrite(US_TRIG, HIGH); delayMicroseconds(10);
-  digitalWrite(US_TRIG, LOW);
-  
-  long duration = pulseIn(US_ECHO, HIGH, 25000); // 25ms timeout
-  if (duration == 0) {
-    sysState.level_dist = -1.0;
-  } else {
-    sysState.level_dist = duration * 0.034 / 2;
-  }
+void measureLevelIn() {
+  // Ultrasonido In
+  digitalWrite(US_IN_TRIG, LOW); delayMicroseconds(2);
+  digitalWrite(US_IN_TRIG, HIGH); delayMicroseconds(10);
+  digitalWrite(US_IN_TRIG, LOW);
+  long dur = pulseIn(US_IN_ECHO, HIGH, 25000);
+  sysState.lvl_in_dist = (dur == 0) ? -1.0 : (dur * 0.034 / 2);
 
-  // 2. Celdas de Carga
-  if (scale.is_ready()) {
-    sysState.level_weight = scale.get_units(1);
+  // Peso In
+  if (scaleIn.is_ready()) {
+    sysState.lvl_in_weight = scaleIn.get_units(1);
   } else {
-    sysState.level_weight = -99.0;
+    sysState.lvl_in_weight = -99.0;
   }
 }
 
@@ -240,7 +257,6 @@ void measureLevel() {
 // =========================================================
 void pubEnvironment() {
   char msg[50];
-  // Formato CSV Limpio: Temp, Hum, Presion
   snprintf(msg, sizeof(msg), "%.2f,%.2f,%.2f", sysState.temp_amb, sysState.hum_amb, sysState.pres_amb);
   mqttClient.publish(TP_MEAS_ENV, msg);
 }
@@ -253,40 +269,57 @@ void pubRadiation() {
 
 void pubInternalTemp() {
   char msg[10];
-  // Valor único limpio (Float)
   snprintf(msg, sizeof(msg), "%.2f", sysState.temp_int);
   mqttClient.publish(TP_MEAS_TEMP, msg);
 }
 
-void pubLevel() {
+void pubLevelIn() {
   char msg[30];
-  // CSV: Peso(kg), Distancia(cm)
-  snprintf(msg, sizeof(msg), "%.2f,%.2f", sysState.level_weight, sysState.level_dist);
-  mqttClient.publish(TP_MEAS_LVL, msg);
+  snprintf(msg, sizeof(msg), "%.2f,%.2f", sysState.lvl_in_weight, sysState.lvl_in_dist);
+  mqttClient.publish(TP_MEAS_LVL_IN, msg);
 }
-
+/*
+void pubLevelOut() {
+  char msg[30];
+  // Placeholder para el futuro
+  snprintf(msg, sizeof(msg), "%.2f,%.2f", sysState.lvl_out_weight, sysState.lvl_out_dist);
+  mqttClient.publish(TP_MEAS_LVL_OUT, msg);
+}
+*/
 // =========================================================
-// 9. CONTROL
+// 9. CONTROL (CALLBACK)
 // =========================================================
 void mqttCallback(char* topic, byte* payload, unsigned int length) {
   String msg = "";
   for (int i = 0; i < length; i++) msg += (char)payload[i];
+  String strTopic = String(topic);
 
-  if (String(topic) == TP_CTRL_IN) {
+  // 1. Control Válvula Entrada
+  if (strTopic == TP_CTRL_IN) {
     digitalWrite(PIN_RELAY_IN, (msg == "1" ? HIGH : LOW));
-  } else if (String(topic) == TP_CTRL_OUT) {
+  } 
+  // 2. Control Válvula Salida
+  else if (strTopic == TP_CTRL_OUT) {
     digitalWrite(PIN_RELAY_OUT, (msg == "1" ? HIGH : LOW));
+  }
+  // 3. Control Proceso General (Start/Stop)
+  else if (strTopic == TP_CTRL_PROCESS) {
+    sysState.process_active = (msg == "1");
+    // Feedback inmediato o acciones al detener
+    if (!sysState.process_active) {
+       digitalWrite(PIN_RELAY_IN, LOW);
+    }
   }
 }
 
 void reconnect() {
   while (!mqttClient.connected()) {
-    String clientId = "WemosR2-";
-    clientId += String(random(0xffff), HEX);
-    
+    String clientId = String(MQTT_CLIENT_ID) + "-" + String(random(0xffff), HEX);
     if (mqttClient.connect(clientId.c_str())) {
+      // Suscribirse a TODOS los canales de control
       mqttClient.subscribe(TP_CTRL_IN);
       mqttClient.subscribe(TP_CTRL_OUT);
+      mqttClient.subscribe(TP_CTRL_PROCESS);
     } else {
       delay(5000);
     }

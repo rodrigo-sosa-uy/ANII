@@ -1,194 +1,158 @@
 import csv
-from datetime import datetime
 import time
-import paho.mqtt.client as mqtt
-import threading
-import keyboard
 import os
+import logging
+import paho.mqtt.client as mqtt
+from datetime import datetime
 
-time.sleep(2)
-
-#########################################################
-################# Definicion de topicos #################
-#########################################################
-
+# =========================================================
+# CONFIGURACIÓN GENERAL
+# =========================================================
 BROKER = "localhost"
-MEASURE_TOPICS = [
-    "measure/temperature",
-    "measure/radiation",
-    "measure/humidity",
-]
+PORT = 1883
+LOG_DIR = '/home/log'
+LOG_FILE = os.path.join(LOG_DIR, 'pymqtt-listener.log')
 
-TOPIC_IN_VALVE = "control/in_valve"
-TOPIC_OUT_VALVE = "control/out_valve"
-TOPIC_CTRL = "control/sampletime"
+# Asegurar que el directorio base existe antes de configurar el logger
+if not os.path.exists(LOG_DIR):
+    try:
+        os.makedirs(LOG_DIR)
+    except OSError as e:
+        print(f"CRITICAL ERROR: No se pudo crear el directorio de logs {LOG_DIR}: {e}")
 
-#########################################################
-################ Definicion de archivos #################
-#########################################################
+# CONFIGURACIÓN DEL LOGGER
+# Escribe en archivo Y en consola (para debug de systemd)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[
+        logging.FileHandler(LOG_FILE),
+        logging.StreamHandler()
+    ]
+)
 
-# Directorio base
-LOG_DIR = '/home/log' 
-
-# Diccionario para mapear el nombre del sensor con su cabecera CSV
-HEADERS = {
-    'temperature': ['Time', 'Temperature1(°C)', 'Temperature2(°C)'],
-    'radiation':   ['Time', 'Radiation(W/m^2)'],
-    'humidity':    ['Time', 'Humidity(%)'],
-    'in_valve':    ['Time', 'Signal(IN)'],
-    'out_valve':   ['Time', 'Signal(OUT)']
+# Lista de tópicos a escuchar
+TOPICS = {
+    # Sensores
+    "measure/environment": "environment",
+    "measure/radiation":   "radiation",
+    "measure/temperature": "temperature",
+    "measure/level_in":    "level_in",
+    "measure/level_out":   "level_out",
+    
+    # Control (Eventos)
+    "control/in_valve":    "control_in",
+    "control/out_valve":   "control_out",
+    "control/process":     "control_process"
 }
 
-#########################################################
-############ Logica de escritura dinamica ###############
-#########################################################
+# Definición de Encabezados CSV
+HEADERS = {
+    'environment': ['Time', 'Amb_Temp(°C)', 'Humidity(%)', 'Pressure(hPa)'],
+    'radiation':   ['Time', 'Radiation(W/m^2)'],
+    'temperature': ['Time', 'Internal_Temp(°C)'],
+    'level_in':    ['Time', 'Weight(kg)', 'Distance(cm)'],
+    'level_out':   ['Time', 'Weight(kg)', 'Distance(cm)'],
+    
+    'control_in':      ['Time', 'State(1=OPEN/0=CLOSE)'],
+    'control_out':     ['Time', 'State(1=OPEN/0=CLOSE)'],
+    'control_process': ['Time', 'State(1=START/0=STOP)']
+}
 
-def escribir_log(tipo_dato, valor):
+# =========================================================
+# LÓGICA DE ALMACENAMIENTO (LOGGER)
+# =========================================================
+def escribir_log(nombre_variable, payload_str):
     """
-    1. Genera el nombre de la CARPETA basado en la fecha actual.
-    2. Si la carpeta no existe, la crea.
-    3. Genera el nombre del archivo y escribe los datos.
+    Gestiona la creación de carpetas y escritura en CSV.
     """
     now = datetime.now()
     
-    # 1. Definir nombre de la carpeta y archivo: "YYYY_mm_dd"
-    date_str = now.strftime('%Y_%m_%d')
-    time_log = now.strftime('%H:%M:%S')
+    # 1. Definir nombres basados en fecha
+    date_str_folder = now.strftime('%Y_%m_%d') 
+    time_log = now.strftime('%H:%M:%S')        
 
-    # Ruta de la carpeta del día: /home/log/2025_11_25
-    daily_dir = os.path.join(LOG_DIR, date_str)
-
-    # 2. CREAR CARPETA SI NO EXISTE
-    # Esto se ejecutará la primera vez que llegue un dato en un nuevo día
+    # 2. Verificar/Crear Directorio del Día
+    daily_dir = os.path.join(LOG_DIR, date_str_folder)
     if not os.path.exists(daily_dir):
         try:
             os.makedirs(daily_dir)
-            print(f"Carpeta creada: {daily_dir}")
+            logging.info(f"📂 Carpeta diaria creada: {daily_dir}")
         except OSError as e:
-            print(f"Error creando directorio {daily_dir}: {e}")
-            return # Salimos si no se puede crear la carpeta
+            logging.error(f"❌ Error creando directorio diario: {e}")
+            return
 
-    # Construimos la ruta completa: /home/log/2025_11_25/2025_11_25_variable.csv
-    filename = os.path.join(daily_dir, f"{date_str}_{tipo_dato}.csv")
-    
-    # Verificamos si el archivo existe para saber si poner cabecera
+    # 3. Ruta del Archivo
+    filename = os.path.join(daily_dir, f"{date_str_folder}_{nombre_variable}.csv")
     archivo_existe = os.path.isfile(filename)
 
+    # 4. Procesar los datos
+    datos_recibidos = payload_str.split(',')
+    fila_a_escribir = [time_log] + datos_recibidos
+
+    # 5. Escribir en CSV
     try:
         with open(filename, 'a', newline='') as f:
             writer = csv.writer(f)
-            # Si es nuevo (acaba de cambiar el día), ponemos header
+            
+            # Escribir cabecera solo si el archivo es nuevo
             if not archivo_existe:
-                writer.writerow(HEADERS[tipo_dato])
+                header = HEADERS.get(nombre_variable, ['Time', 'Value'])
+                writer.writerow(header)
             
-            # Escribimos el dato
-            writer.writerow([time_log, valor])
+            # Escribir datos
+            writer.writerow(fila_a_escribir)
+            logging.info(f"💾 Guardado en {nombre_variable}: {fila_a_escribir}")
+            
     except Exception as e:
-        print(f"Error escribiendo archivo {filename}: {e}")
+        logging.error(f"❌ Error escribiendo archivo {filename}: {e}")
 
-#########################################################
-############### Modo de operacion inicial ###############
-#########################################################
+# =========================================================
+# LÓGICA MQTT
+# =========================================================
 
-modo = "auto"  # estado inicial
-client = mqtt.Client() 
+def on_connect(client, userdata, flags, rc):
+    if rc == 0:
+        logging.info(f"✅ Conectado al Broker MQTT local (Código: {rc})")
+        # Suscribirse a todos los tópicos
+        for topic in TOPICS.keys():
+            client.subscribe(topic)
+            logging.info(f"   Suscrito a: {topic}")
+    else:
+        logging.error(f"❌ Falló conexión al Broker. Código: {rc}")
 
-#########################################################
-################### Hilos y funciones ###################
-#########################################################
-
-def publicar_valvula(topic, valor):
-    global client
+def on_message(client, userdata, msg):
     try:
-        client.publish(topic, valor)
-        
-        # Identificamos el tipo para el log
-        tipo = 'in_valve' if topic == TOPIC_IN_VALVE else 'out_valve'
-        
-        # Llamamos a la funcion dinamica
-        escribir_log(tipo, valor)
-            
-        print(f"Publicado → {topic}: {valor}")
-    except Exception as e:
-        print(f"Error publicando: {e}")
-
-def mqtt_thread():
-    global client
-    
-    def on_connect(client, userdata, flags, rc):
-        print("Conectado con código:", rc)
-        for top in MEASURE_TOPICS:
-            client.subscribe(top)
-            print("Suscrito a", top)
-
-    def on_message(client, userdata, msg):
+        topic = msg.topic
         payload = msg.payload.decode()
-        print(f"Mensaje recibido → {msg.topic}: {payload}")
         
-        # Llamamos a la funcion dinamica segun el topico
-        if msg.topic == "measure/temperature":
-            escribir_log('temperature', payload)
-                
-        elif msg.topic == "measure/radiation":
-            escribir_log('radiation', payload)
-                
-        elif msg.topic == "measure/humidity":
-            escribir_log('humidity', payload)
-    
-    # Configuracion de callbacks
+        if topic in TOPICS:
+            nombre_variable = TOPICS[topic]
+            escribir_log(nombre_variable, payload)
+        else:
+            logging.warning(f"⚠️ Tópico desconocido recibido: {topic}")
+            
+    except Exception as e:
+        logging.error(f"❌ Error procesando mensaje MQTT: {e}")
+
+# =========================================================
+# BUCLE PRINCIPAL
+# =========================================================
+
+if __name__ == "__main__":
+    logging.info("📝 INICIANDO LOGGER MQTT")
+    logging.info(f"Directorio base: {LOG_DIR}")
+    logging.info(f"Archivo de Log: {LOG_FILE}")
+
+    client = mqtt.Client()
     client.on_connect = on_connect
     client.on_message = on_message
 
     try:
-        client.connect(BROKER, 1883, 60)
+        logging.info(f"Intentando conectar a {BROKER}:{PORT}...")
+        client.connect(BROKER, PORT, 60)
         client.loop_forever()
+    except KeyboardInterrupt:
+        logging.info("Deteniendo Logger por solicitud del usuario.")
     except Exception as e:
-        print(f"Error conexión MQTT: {e}")
-
-def teclado_thread():
-    global modo
-    while True:
-        try:
-            if keyboard.is_pressed("f1"):  # tecla para modo manual
-                modo = "manual"
-                print("Cambiado a MODO MANUAL")
-                time.sleep(0.3)
-
-            elif keyboard.is_pressed("f2"):  # tecla para modo automático
-                modo = "auto"
-                print("Cambiado a MODO AUTOMÁTICO")
-                time.sleep(0.3)
-            
-            # Controles manuales
-            if modo == "manual":
-                if keyboard.is_pressed("f3"):
-                    publicar_valvula(TOPIC_IN_VALVE, 1)
-                    time.sleep(0.3)
-                elif keyboard.is_pressed("f4"):
-                    publicar_valvula(TOPIC_IN_VALVE, 0)
-                    time.sleep(0.3)
-                elif keyboard.is_pressed("f5"):
-                    publicar_valvula(TOPIC_OUT_VALVE, 1)
-                    time.sleep(0.3)
-                elif keyboard.is_pressed("f6"):
-                    publicar_valvula(TOPIC_OUT_VALVE, 0)
-                    time.sleep(0.3)
-            elif modo == "auto":
-                if keyboard.is_pressed("f7"):
-                    publicar_valvula(TOPIC_CTRL, 1)
-                    time.sleep(0.3)
-                elif keyboard.is_pressed("f8"):
-                    publicar_valvula(TOPIC_CTRL, 0)
-                    time.sleep(0.3)
-                    
-            time.sleep(0.1)
-        except Exception as e:
-            print(f"Error teclado: {e}")
-
-# Iniciar hilos
-threading.Thread(target=mqtt_thread, daemon=True).start()
-threading.Thread(target=teclado_thread, daemon=True).start()
-
-# Bucle principal
-while True:
-    time.sleep(1)
+        logging.critical(f"❌ Error fatal de conexión: {e}")
