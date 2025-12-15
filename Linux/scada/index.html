@@ -12,228 +12,77 @@
             font-family: 'Segoe UI', sans-serif; 
             background-color: #f4f6f9; 
             text-align: center; 
-            padding: 0; /* Eliminamos padding del body para que la barra toque los bordes */
-            color: #333; 
-            margin: 0;
-            overflow-x: hidden;
-            transition: margin-right .5s;
+            padding: 0; margin: 0; color: #333; 
+            overflow-x: hidden; transition: margin-right .5s;
         }
         
-        /* --- ENCABEZADO ESTILO NAVBAR (Ancho Completo) --- */
-        .header {
-            background-color: white;
-            padding: 10px 40px; /* Más espacio a los lados */
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            margin-bottom: 30px;
-            
-            /* Configuración para ancho completo */
-            width: 100%;
-            max-width: none; 
-            box-sizing: border-box; /* Importante para que el padding no sume al 100% */
-            border-radius: 0; /* Rectangular */
-            
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            
-            /* Opcional: Para que se mantenga arriba al hacer scroll */
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-
-        .header-left, .header-right {
-            flex: 1;
-            display: flex;
-            align-items: center;
-        }
-        
-        .header-right {
-            justify-content: flex-end;
-            gap: 25px; /* Espacio generoso entre logo ANII y Botón Menú */
-        }
-
-        .header-center {
-            flex: 2;
-            text-align: center;
-        }
-
-        .header h1 {
-            margin: 0;
-            font-size: 1.6rem; /* Un poco más pequeño para barra superior */
-            color: #2c3e50;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .header p {
-            margin: 2px 0 0 0;
-            color: #7f8c8d;
-            font-weight: 600;
-            font-size: 0.85rem;
-        }
-
-        /* Estilo de los Logos */
-        .logo {
-            height: 60px; /* Ajustado ligeramente para barra de navegación */
-            width: auto;
-            object-fit: contain;
-            transition: transform 0.3s;
-        }
-        .logo:hover { transform: scale(1.05); }
-
-        .icon-meca {
-            height: 35px;
-            margin-bottom: 2px;
-        }
-
-        /* --- BOTÓN DE MENÚ --- */
-        .menu-btn {
-            font-size: 28px;
-            cursor: pointer;
-            background: none;
-            border: none;
-            color: #2c3e50;
-            padding: 8px;
-            border-radius: 5px;
-            transition: 0.3s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
+        /* HEADER & SIDEBAR (Igual que antes) */
+        .header { background-color: white; padding: 10px 40px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 30px; width: 100%; box-sizing: border-box; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
+        .header-left, .header-right { flex: 1; display: flex; align-items: center; }
+        .header-right { justify-content: flex-end; gap: 25px; }
+        .header-center { flex: 2; text-align: center; }
+        .header h1 { margin: 0; font-size: 1.6rem; color: #2c3e50; letter-spacing: 1px; }
+        .header p { margin: 2px 0 0 0; color: #7f8c8d; font-weight: 600; font-size: 0.85rem; }
+        .logo { height: 60px; width: auto; object-fit: contain; }
+        .icon-meca { height: 35px; margin-bottom: 2px; }
+        .menu-btn { font-size: 28px; cursor: pointer; background: none; border: none; color: #2c3e50; padding: 8px; border-radius: 5px; transition: 0.3s; }
         .menu-btn:hover { background-color: #ecf0f1; }
-
-        /* --- SIDEBAR --- */
-        .sidebar {
-            height: 100%;
-            width: 0;
-            position: fixed;
-            z-index: 1000; /* Por encima del header sticky */
-            top: 0;
-            right: 0;
-            background-color: #2c3e50;
-            overflow-x: hidden;
-            transition: 0.5s;
-            padding-top: 60px;
-            box-shadow: -5px 0 15px rgba(0,0,0,0.2);
-        }
-
-        .sidebar a {
-            padding: 15px 25px;
-            text-decoration: none;
-            font-size: 1.2rem;
-            color: #bdc3c7;
-            display: block;
-            transition: 0.3s;
-            text-align: left;
-            border-left: 5px solid transparent;
-        }
-
-        .sidebar a:hover {
-            color: #f1f1f1;
-            background-color: #34495e;
-            border-left: 5px solid #3498db;
-        }
-
-        .sidebar .closebtn {
-            position: absolute;
-            top: 0;
-            left: 0;
-            font-size: 36px;
-            margin-left: 20px;
-            margin-top: 10px;
-            border: none;
-            color: white;
-            background: none;
-            cursor: pointer;
-        }
-
-        .sidebar-title {
-            color: white;
-            font-size: 1.5rem;
-            margin-bottom: 20px;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            border-bottom: 1px solid #34495e;
-            padding-bottom: 10px;
-        }
-
-        /* --- CONTENEDOR PRINCIPAL --- */
-        .container {
-            display: flex;
-            justify-content: space-between; /* Distribución uniforme */
-            flex-wrap: nowrap; /* Forzar una sola línea en escritorio */
-            gap: 30px; /* Espacio entre tarjetas */
-            width: 100%;
-            max-width: 1600px; /* Permitir más ancho en monitores grandes */
-            margin: 0 auto;
-            padding: 20px 40px; /* Padding lateral */
-            box-sizing: border-box;
-        }
-
-        .card {
-            background: white;
-            padding: 25px;
-            border-radius: 12px;
-            flex: 1; /* Crecer equitativamente para llenar la fila */
-            min-width: 0; /* Evitar que el contenido desborde el flex item */
-            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
-            display: flex;
-            flex-direction: column;
-        }
-
-        /* Responsive: En tablets y móviles volvemos a apilar */
-        @media (max-width: 900px) {
-            .container {
-                flex-wrap: wrap;
-                justify-content: center;
-            }
-            .card {
-                flex: 1 1 100%; /* Ocupar todo el ancho en móvil */
-                max-width: 400px;
-            }
-        }
         
-        .card h2 { margin: 0; font-size: 1.1rem; color: #7f8c8d; text-transform: uppercase; }
-        .valor { font-size: 2.5rem; font-weight: bold; margin: 10px 0; color: #2c3e50; }
+        .sidebar { height: 100%; width: 0; position: fixed; z-index: 1000; top: 0; right: 0; background-color: #2c3e50; overflow-x: hidden; transition: 0.5s; padding-top: 60px; box-shadow: -5px 0 15px rgba(0,0,0,0.2); }
+        .sidebar a { padding: 15px 25px; text-decoration: none; font-size: 1.2rem; color: #bdc3c7; display: block; transition: 0.3s; text-align: left; }
+        .sidebar a:hover { color: #f1f1f1; background-color: #34495e; border-left: 5px solid #3498db; }
+        .sidebar .closebtn { position: absolute; top: 0; left: 0; font-size: 36px; margin-left: 20px; margin-top: 10px; border: none; color: white; background: none; cursor: pointer; }
+        .sidebar-title { color: white; font-size: 1.5rem; margin-bottom: 20px; text-transform: uppercase; border-bottom: 1px solid #34495e; padding-bottom: 10px; }
+
+        /* GRID SYSTEM */
+        .grid-container { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; max-width: 1600px; margin: 0 auto; padding: 20px 40px; box-sizing: border-box; }
+        @media (max-width: 1200px) { .grid-container { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 700px) { .grid-container { grid-template-columns: 1fr; } }
+
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); display: flex; flex-direction: column; }
+        .card h2 { margin: 0; font-size: 1rem; color: #7f8c8d; text-transform: uppercase; font-weight: 600; }
+        .valor { font-size: 2.2rem; font-weight: bold; margin: 5px 0; color: #2c3e50; }
         .unidad { font-size: 0.8rem; color: #95a5a6; font-weight: normal; }
+        .chart-container { position: relative; height: 120px; width: 100%; margin-top: 10px; }
 
-        .chart-container {
-            position: relative;
-            height: 150px;
-            width: 100%;
-            margin-top: 15px;
-        }
-
+        .lvl { border-top: 5px solid #3498db; }
+        .tmp { border-top: 5px solid #e74c3c; }
         .rad { border-top: 5px solid #e67e22; }
-        .temp { border-top: 5px solid #e74c3c; }
-        .hum { border-top: 5px solid #3498db; }
+        .env { border-top: 5px solid #2ecc71; }
+        .ctrl { border-top: 5px solid #9b59b6; } /* Color para controles */
 
-        /* --- PESTAÑA CONTROL --- */
-        .control-placeholder {
-            padding: 50px;
-            background: white;
-            border-radius: 12px;
-            margin-top: 20px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
-        }
-        .control-icon { font-size: 4rem; color: #bdc3c7; margin-bottom: 20px; }
-
-        .view-section {
-            display: none;
-            animation: fadeIn 0.5s;
-        }
+        .section-title { grid-column: 1 / -1; text-align: left; margin-top: 20px; margin-bottom: 10px; font-size: 1.2rem; color: #2c3e50; border-bottom: 2px solid #ecf0f1; padding-bottom: 5px; }
+        .view-section { display: none; animation: fadeIn 0.5s; }
         .view-active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+        /* --- ESTILOS LOGIN --- */
+        #login-screen { max-width: 400px; margin: 50px auto; padding: 40px; background: white; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        .input-group { margin-bottom: 15px; text-align: left; }
+        .input-group label { display: block; margin-bottom: 5px; color: #7f8c8d; }
+        .input-group input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
+        .btn-login { width: 100%; padding: 10px; background-color: #2c3e50; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 1rem; }
+        .btn-login:hover { background-color: #34495e; }
+        .error-msg { color: #e74c3c; margin-top: 10px; display: none; }
+
+        /* --- ESTILOS CONTROL --- */
+        .ctrl-btn-group { display: flex; gap: 10px; margin-top: 15px; justify-content: center; }
+        .btn-ctrl { flex: 1; padding: 10px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; transition: 0.2s; color: white; opacity: 0.6; }
+        .btn-green { background-color: #2ecc71; }
+        .btn-red { background-color: #e74c3c; }
+        .btn-blue { background-color: #3498db; }
+        
+        .btn-active { opacity: 1; transform: scale(1.05); box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        .btn-disabled { background-color: #bdc3c7 !important; cursor: not-allowed; opacity: 0.4; pointer-events: none; }
+
+        .mode-indicator { font-size: 0.9rem; margin-top: 5px; font-weight: bold; }
+        .mode-auto { color: #3498db; }
+        .mode-manual { color: #e67e22; }
+
     </style>
 </head>
 <body>
 
-    <!-- MENÚ LATERAL -->
     <div id="mySidebar" class="sidebar">
         <button class="closebtn" onclick="closeNav()">&times;</button>
         <div class="sidebar-title">Menú</div>
@@ -242,166 +91,257 @@
         <a href="#" onclick="closeNav()" style="margin-top: 50px; color: #e74c3c;">❌ Cerrar Menú</a>
     </div>
 
-    <!-- ENCABEZADO (Full Width) -->
     <div class="header">
-        <!-- IZQUIERDA -->
-        <div class="header-left">
-            <img src="/static/utec.png" alt="UTEC" class="logo">
-        </div>
-
-        <!-- CENTRO -->
+        <div class="header-left"><img src="/static/utec.png" alt="UTEC" class="logo"></div>
         <div class="header-center">
             <img src="/static/meca.png" alt="Mecatrónica" class="icon-meca">
-            <h2>Proyecto Desalinizador ITRSO</h2>
-            <p>Monitoreo en Tiempo Real y Control de Proceso</p>
+            <h1>Ingeniería en Mecatrónica</h1>
+            <p>Monitor SCADA v3.0</p>
         </div>
-
-        <!-- DERECHA -->
         <div class="header-right">
             <img src="/static/anii.png" alt="ANII" class="logo">
-            <!-- BOTÓN MENÚ A LA DERECHA DEL LOGO -->
-            <button class="menu-btn" onclick="openNav()" title="Abrir Menú">☰</button>
+            <button class="menu-btn" onclick="openNav()">☰</button>
         </div>
     </div>
 
-    <!-- ================= VISTA MONITOREO ================= -->
+    <!-- ================= VISTA MONITOREO (Solo Lectura) ================= -->
     <div id="view-monitor" class="view-section view-active">
-        <div class="container">
-            <!-- Radiación -->
+        <div class="grid-container">
+            <div class="section-title">🏭 Variables de Proceso</div>
+            <!-- Fila 1 -->
+            <div class="card lvl">
+                <h2>📥 Nivel Entrada</h2>
+                <div class="valor"><span id="v-lvl_in_dist">{{ datos.lvl_in_dist }}</span> <span class="unidad">cm</span></div>
+                <div class="chart-container"><canvas id="chart-lvl_in_dist"></canvas></div>
+            </div>
+            <div class="card lvl">
+                <h2>⚖️ Cantidad Cámara</h2>
+                <div class="valor"><span id="v-lvl_in_weight">{{ datos.lvl_in_weight }}</span> <span class="unidad">kg</span></div>
+                <div class="chart-container"><canvas id="chart-lvl_in_weight"></canvas></div>
+            </div>
+            <div class="card tmp">
+                <h2>🌡️ Temp. Cámara</h2>
+                <div class="valor"><span id="v-int_temp">{{ datos.int_temp }}</span> <span class="unidad">°C</span></div>
+                <div class="chart-container"><canvas id="chart-int_temp"></canvas></div>
+            </div>
+            <div class="card lvl">
+                <h2>📤 Nivel Salida</h2>
+                <div class="valor"><span id="v-lvl_out_dist">{{ datos.lvl_out_dist }}</span> <span class="unidad">cm</span></div>
+                <div class="chart-container"><canvas id="chart-lvl_out_dist"></canvas></div>
+            </div>
+
+            <div class="section-title">🌤️ Condiciones Ambientales</div>
+            <!-- Fila 2 -->
             <div class="card rad">
                 <h2>☀️ Radiación</h2>
-                <div class="valor">
-                    <span id="v-radiation">{{ datos.radiation }}</span>
-                    <span class="unidad">W/m²</span>
-                </div>
-                <div class="chart-container">
-                    <canvas id="chart-radiation"></canvas>
-                </div>
+                <div class="valor"><span id="v-radiation">{{ datos.radiation }}</span> <span class="unidad">W/m²</span></div>
+                <div class="chart-container"><canvas id="chart-radiation"></canvas></div>
             </div>
-
-            <!-- Temperatura -->
-            <div class="card temp">
-                <h2>🌡️ Temperatura</h2>
-                <div class="valor">
-                    <span id="v-temperature">{{ datos.temperature }}</span>
-                    <span class="unidad">°C</span>
-                </div>
-                <div class="chart-container">
-                    <canvas id="chart-temperature"></canvas>
-                </div>
+            <div class="card env">
+                <h2>🌡️ Temp. Ambiente</h2>
+                <div class="valor"><span id="v-env_temp">{{ datos.env_temp }}</span> <span class="unidad">°C</span></div>
+                <div class="chart-container"><canvas id="chart-env_temp"></canvas></div>
             </div>
-
-            <!-- Humedad -->
-            <div class="card hum">
+            <div class="card env">
                 <h2>💧 Humedad</h2>
-                <div class="valor">
-                    <span id="v-humidity">{{ datos.humidity }}</span>
-                    <span class="unidad">%</span>
-                </div>
-                <div class="chart-container">
-                    <canvas id="chart-humidity"></canvas>
-                </div>
+                <div class="valor"><span id="v-env_hum">{{ datos.env_hum }}</span> <span class="unidad">%</span></div>
+                <div class="chart-container"><canvas id="chart-env_hum"></canvas></div>
+            </div>
+            <div class="card env">
+                <h2>⏲️ Presión</h2>
+                <div class="valor"><span id="v-env_pres">{{ datos.env_pres }}</span> <span class="unidad">hPa</span></div>
+                <div class="chart-container"><canvas id="chart-env_pres"></canvas></div>
             </div>
         </div>
     </div>
 
-    <!-- ================= VISTA CONTROL ================= -->
+    <!-- ================= VISTA CONTROL (Protegida) ================= -->
     <div id="view-control" class="view-section">
-        <div class="container">
-            <div class="control-placeholder" style="width: 100%;">
-                <div class="control-icon">⚙️</div>
-                <h2>Panel de Control de Procesos</h2>
-                <p>Módulo en desarrollo. Aquí se ubicarán los controles de bombas, válvulas y setpoints.</p>
-                <button onclick="showView('monitor')" style="padding: 10px 20px; margin-top: 20px; background:#3498db; color:white; border:none; border-radius:5px; cursor:pointer;">Volver al Monitoreo</button>
+        
+        <!-- PANTALLA LOGIN -->
+        <div id="login-screen">
+            <h2>🔐 Acceso Restringido</h2>
+            <p>Ingrese credenciales de operador</p>
+            <div class="input-group">
+                <label>Usuario</label>
+                <input type="text" id="login-user">
+            </div>
+            <div class="input-group">
+                <label>Contraseña</label>
+                <input type="password" id="login-pass">
+            </div>
+            <button class="btn-login" onclick="checkLogin()">Ingresar</button>
+            <p id="login-error" class="error-msg">Credenciales incorrectas</p>
+        </div>
+
+        <!-- PANEL DE CONTROL (Oculto inicialmente) -->
+        <div id="control-dashboard" style="display: none;">
+            <div class="grid-container">
+                
+                <div class="section-title">🏭 Estado del Proceso (Tiempo Real)</div>
+                <!-- Copia de las variables clave para referencia visual -->
+                <div class="card lvl">
+                    <h2>📥 Nivel Entrada</h2>
+                    <div class="valor"><span id="c-lvl_in_dist">--</span> <span class="unidad">cm</span></div>
+                </div>
+                <div class="card lvl">
+                    <h2>⚖️ Cantidad Cámara</h2>
+                    <div class="valor"><span id="c-lvl_in_weight">--</span> <span class="unidad">kg</span></div>
+                </div>
+                <div class="card tmp">
+                    <h2>🌡️ Temp. Cámara</h2>
+                    <div class="valor"><span id="c-int_temp">--</span> <span class="unidad">°C</span></div>
+                </div>
+                <div class="card lvl">
+                    <h2>📤 Nivel Salida</h2>
+                    <div class="valor"><span id="c-lvl_out_dist">--</span> <span class="unidad">cm</span></div>
+                </div>
+
+                <div class="section-title">🎛️ Centro de Comando</div>
+
+                <!-- 1. SELECTOR DE MODO -->
+                <div class="card ctrl">
+                    <h2>🤖 Modo de Operación</h2>
+                    <div class="mode-indicator" id="mode-text">AUTO</div>
+                    <div class="ctrl-btn-group">
+                        <button class="btn-ctrl btn-blue btn-active" id="btn-auto" onclick="setMode('auto')">AUTO</button>
+                        <button class="btn-ctrl btn-blue" id="btn-manual" onclick="setMode('manual')">MANUAL</button>
+                    </div>
+                </div>
+
+                <!-- 2. CONTROL DE PROCESO (START/STOP) -->
+                <div class="card ctrl">
+                    <h2>🚀 Proceso General</h2>
+                    <div class="ctrl-btn-group">
+                        <button class="btn-ctrl btn-green" id="btn-proc-start" onclick="sendCommand('control/process', 1, this)">START</button>
+                        <button class="btn-ctrl btn-red" id="btn-proc-stop" onclick="sendCommand('control/process', 0, this)">STOP</button>
+                    </div>
+                </div>
+
+                <!-- 3. VÁLVULA ENTRADA -->
+                <div class="card ctrl">
+                    <h2>🚰 Válvula Entrada</h2>
+                    <div class="ctrl-btn-group">
+                        <button class="btn-ctrl btn-green valve-btn" onclick="sendCommand('control/in_valve', 1, this)">ABRIR</button>
+                        <button class="btn-ctrl btn-red valve-btn" onclick="sendCommand('control/in_valve', 0, this)">CERRAR</button>
+                    </div>
+                </div>
+
+                <!-- 4. VÁLVULA SALIDA -->
+                <div class="card ctrl">
+                    <h2>🚰 Válvula Salida</h2>
+                    <div class="ctrl-btn-group">
+                        <button class="btn-ctrl btn-green valve-btn" onclick="sendCommand('control/out_valve', 1, this)">ABRIR</button>
+                        <button class="btn-ctrl btn-red valve-btn" onclick="sendCommand('control/out_valve', 0, this)">CERRAR</button>
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>
 
     <script>
         var socket = io();
-        
-        function openNav() {
-            document.getElementById("mySidebar").style.width = "280px";
-        }
+        var isManualMode = false; // Estado local del modo
 
-        function closeNav() {
-            document.getElementById("mySidebar").style.width = "0";
-        }
-
+        // --- NAVEGACIÓN ---
+        function openNav() { document.getElementById("mySidebar").style.width = "280px"; }
+        function closeNav() { document.getElementById("mySidebar").style.width = "0"; }
         function showView(viewName) {
-            document.getElementById('view-monitor').classList.remove('view-active');
-            document.getElementById('view-control').classList.remove('view-active');
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('view-active'));
             document.getElementById('view-' + viewName).classList.add('view-active');
             closeNav();
         }
 
-        const commonOptions = {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: { x: { display: false }, y: { beginAtZero: false } },
-            elements: { point: { radius: 0 } },
-            animation: false 
-        };
+        // --- LOGIN ---
+        function checkLogin() {
+            var u = document.getElementById('login-user').value;
+            var p = document.getElementById('login-pass').value;
+            if(u === 'rodrigo.sosa' && p === 'proyecto-anii') {
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('control-dashboard').style.display = 'block';
+                // Inicializar estado de botones en Auto
+                setMode('auto');
+            } else {
+                document.getElementById('login-error').style.display = 'block';
+            }
+        }
 
-        function createChart(ctx, color, label) {
-            return new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: [],
-                    datasets: [{
-                        label: label,
-                        data: [],
-                        borderColor: color,
-                        backgroundColor: color + '33',
-                        borderWidth: 2,
-                        fill: true,
-                        tension: 0.4
-                    }]
-                },
-                options: commonOptions
+        // --- LÓGICA DE CONTROL ---
+        function setMode(mode) {
+            isManualMode = (mode === 'manual');
+            
+            // Actualizar botones de modo
+            document.getElementById('btn-auto').className = isManualMode ? 'btn-ctrl btn-blue' : 'btn-ctrl btn-blue btn-active';
+            document.getElementById('btn-manual').className = isManualMode ? 'btn-ctrl btn-blue btn-active' : 'btn-ctrl btn-blue';
+            
+            var textEl = document.getElementById('mode-text');
+            textEl.innerText = isManualMode ? "MANUAL (Control habilitado)" : "AUTO (Control bloqueado)";
+            textEl.className = "mode-indicator " + (isManualMode ? "mode-manual" : "mode-auto");
+
+            // Habilitar/Deshabilitar botones de válvulas
+            var valveBtns = document.querySelectorAll('.valve-btn');
+            valveBtns.forEach(btn => {
+                if(isManualMode) btn.classList.remove('btn-disabled');
+                else btn.classList.add('btn-disabled');
             });
         }
 
+        function sendCommand(topic, payload, btnElement) {
+            // Animación visual de pulsación
+            if(btnElement) {
+                btnElement.style.transform = "scale(0.95)";
+                setTimeout(() => btnElement.style.transform = "scale(1)", 150);
+            }
+            // Enviar al Backend
+            socket.emit('control_cmd', {topic: topic, payload: payload});
+        }
+
+        // --- GRÁFICOS (Chart.js) ---
+        const commonOptions = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { beginAtZero: false } }, elements: { point: { radius: 0 } }, animation: false };
+        function createChart(id, color) { return new Chart(document.getElementById(id), { type: 'line', data: { labels: [], datasets: [{ data: [], borderColor: color, backgroundColor: color + '33', borderWidth: 2, fill: true, tension: 0.4 }] }, options: commonOptions }); }
+
         const charts = {
-            radiation: createChart(document.getElementById('chart-radiation'), '#e67e22', 'Radiación'),
-            temperature: createChart(document.getElementById('chart-temperature'), '#e74c3c', 'Temp'),
-            humidity: createChart(document.getElementById('chart-humidity'), '#3498db', 'Humedad')
+            lvl_in_dist: createChart('chart-lvl_in_dist', '#3498db'),
+            lvl_in_weight: createChart('chart-lvl_in_weight', '#3498db'),
+            int_temp: createChart('chart-int_temp', '#e74c3c'),
+            lvl_out_dist: createChart('chart-lvl_out_dist', '#3498db'),
+            radiation: createChart('chart-radiation', '#e67e22'),
+            env_temp: createChart('chart-env_temp', '#2ecc71'),
+            env_hum: createChart('chart-env_hum', '#2ecc71'),
+            env_pres: createChart('chart-env_pres', '#2ecc71')
         };
 
-        fetch('/api/history')
-            .then(response => response.json())
-            .then(data => {
-                const fillChart = (sensor, points) => {
-                    if (charts[sensor] && points) {
-                        points.forEach(p => {
-                            charts[sensor].data.labels.push(p.time);
-                            charts[sensor].data.datasets[0].data.push(p.value);
-                        });
-                        charts[sensor].update();
-                    }
-                };
-                fillChart('radiation', data.radiation);
-                fillChart('temperature', data.temperature);
-                fillChart('humidity', data.humidity);
+        // Cargar Historial
+        fetch('/api/history').then(res => res.json()).then(data => {
+            Object.keys(data).forEach(key => {
+                if (charts[key] && data[key]) {
+                    data[key].forEach(p => {
+                        charts[key].data.labels.push(p.time);
+                        charts[key].data.datasets[0].data.push(p.value);
+                    });
+                    charts[key].update();
+                }
             });
+        });
 
+        // Actualización Real-Time
         socket.on('nuevo_dato', function(msg) {
+            // Actualizar en Monitor
             var el = document.getElementById('v-' + msg.sensor);
-            if (el) {
-                el.innerText = msg.valor;
-                el.style.color = "#27ae60";
-                setTimeout(() => { el.style.color = "#2c3e50"; }, 500);
-            }
+            if (el) { el.innerText = msg.valor; el.style.color = "#27ae60"; setTimeout(() => { el.style.color = "#2c3e50"; }, 500); }
+            
+            // Actualizar en Panel Control (si existe)
+            var elCtrl = document.getElementById('c-' + msg.sensor);
+            if (elCtrl) { elCtrl.innerText = msg.valor; }
 
+            // Gráficos
             if (charts[msg.sensor]) {
                 const now = new Date();
-                const timeStr = now.getHours().toString().padStart(2,'0') + ':' + 
-                                now.getMinutes().toString().padStart(2,'0') + ':' + 
-                                now.getSeconds().toString().padStart(2,'0');
-                
+                const timeStr = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0') + ':' + now.getSeconds().toString().padStart(2,'0');
                 charts[msg.sensor].data.labels.push(timeStr);
                 charts[msg.sensor].data.datasets[0].data.push(parseFloat(msg.valor));
+                if (charts[msg.sensor].data.labels.length > 200) { charts[msg.sensor].data.labels.shift(); charts[msg.sensor].data.datasets[0].data.shift(); }
                 charts[msg.sensor].update();
             }
         });

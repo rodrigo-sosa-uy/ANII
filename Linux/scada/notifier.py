@@ -3,8 +3,12 @@ import re
 import requests
 import os
 import urllib3
+import logging
+from datetime import datetime
 
-# --- CONFIGURACIÓN ESPECÍFICA DEL DISPOSITIVO ---
+# =========================================================
+# CONFIGURACIÓN ESPECÍFICA DEL DISPOSITIVO
+# =========================================================
 DEVICE_REGION = "SO"
 #DEVICE_REGION = "CS"
 #DEVICE_REGION = "E"
@@ -24,13 +28,46 @@ CHAT_IDS = [
     # "123456789"
 ]
 
-LOG_FILE = "/var/log/scada-tunnel.log"
+# Archivo donde Cloudflare escribe su salida (Input para este script)
+TUNNEL_LOG_INPUT = "/var/log/scada-tunnel.log"
 
 # Desactivar advertencias SSL (por la red de la UTEC)
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-def log(msg):
-    print(f"[Notificador {DEVICE_REGION}] {msg}")
+# =========================================================
+# CONFIGURACIÓN DE LOGGING (Output del Script)
+# =========================================================
+LOG_DIR_BASE = '/home/log'
+
+# 1. Obtenemos el mes actual: "2025_12"
+current_month_str = datetime.now().strftime('%Y_%m')
+
+# 2. Definimos la carpeta del mes
+LOG_MONTH_DIR = os.path.join(LOG_DIR_BASE, current_month_str)
+
+# 3. Definimos el archivo final: "notifier.log"
+LOG_FILE_OUTPUT = os.path.join(LOG_MONTH_DIR, 'notifier.log')
+
+# 4. Crear estructura si no existe
+if not os.path.exists(LOG_MONTH_DIR):
+    try:
+        os.makedirs(LOG_MONTH_DIR)
+    except OSError as e:
+        print(f"CRITICAL ERROR: No se pudo crear directorio {LOG_MONTH_DIR}: {e}")
+
+# Configuración del Logger
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[
+        logging.FileHandler(LOG_FILE_OUTPUT),
+        logging.StreamHandler()
+    ]
+)
+
+# =========================================================
+# FUNCIONES
+# =========================================================
 
 def enviar_telegram_multiusuario(mensaje_base):
     """Envía el mensaje a todos los usuarios de la lista"""
@@ -52,20 +89,21 @@ def enviar_telegram_multiusuario(mensaje_base):
         try:
             # verify=False es clave para tu red
             requests.post(url, data=data, verify=False, timeout=10)
-            log(f"Mensaje enviado a {usuario_id}.")
+            logging.info(f"Mensaje enviado a {usuario_id}.")
             envios_exitosos += 1
         except Exception as e:
-            log(f"Error enviando a {usuario_id}: {e}")
+            logging.error(f"Error enviando a {usuario_id}: {e}")
             
     return envios_exitosos > 0
 
 def buscar_url_en_log():
-    """Lee el log y busca la última URL de trycloudflare.com"""
-    if not os.path.exists(LOG_FILE):
+    """Lee el log de Cloudflare y busca la última URL"""
+    if not os.path.exists(TUNNEL_LOG_INPUT):
+        logging.warning(f"No se encontró el archivo de log del túnel: {TUNNEL_LOG_INPUT}")
         return None
         
     try:
-        with open(LOG_FILE, 'r') as f:
+        with open(TUNNEL_LOG_INPUT, 'r') as f:
             lines = f.readlines()
             
         # Leemos de atrás hacia adelante para encontrar la más reciente
@@ -75,15 +113,14 @@ def buscar_url_en_log():
             if match:
                 return match.group(1)
     except Exception as e:
-        log(f"Error leyendo log: {e}")
+        logging.error(f"Error leyendo log de entrada: {e}")
     
     return None
 
 def main():
-    log("Iniciando búsqueda de URL del túnel...")
+    logging.info(f"--- 🔍 Iniciando Notificador de Túnel [{DEVICE_REGION}] ---")
     
     # Intentos: Esperamos hasta 2 minutos (12 intentos de 10s)
-    # Porque Cloudflare puede tardar en arrancar o Wifi-Keeper en dar internet
     intentos = 0
     url_encontrada = None
     
@@ -91,10 +128,10 @@ def main():
         url_encontrada = buscar_url_en_log()
         
         if url_encontrada:
-            # Encontramos una URL
+            logging.info(f"URL encontrada: {url_encontrada}")
             break
         
-        log(f"URL no encontrada aún. Intento {intentos+1}/12. Esperando...")
+        logging.info(f"URL no encontrada aún. Intento {intentos+1}/12. Esperando...")
         time.sleep(10)
         intentos += 1
         
@@ -105,9 +142,12 @@ def main():
             f"🌍 **Nueva URL SCADA:**\n"
             f"`{url_encontrada}`"
         )
-        enviar_telegram_multiusuario(mensaje)
+        if enviar_telegram_multiusuario(mensaje):
+            logging.info("Notificación enviada exitosamente a al menos un usuario.")
+        else:
+            logging.error("Fallo total al enviar notificaciones.")
     else:
-        log("No se encontró la URL después de varios intentos.")
+        logging.error("No se encontró la URL después de varios intentos.")
         enviar_telegram_multiusuario("⚠️ **ALERTA:** Sistema reiniciado, pero no se detectó la URL del Túnel. Revisa la conexión.")
 
 if __name__ == "__main__":

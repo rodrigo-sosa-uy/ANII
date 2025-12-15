@@ -12,27 +12,42 @@ FTP_HOST = "ftp.utecnologica.org"
 #FTP_HOST = "31.220.106.205"
 FTP_USER = "u874918252.imec"
 FTP_PASS = "TU_CONTRASEÑA_AQUI"  # <- IMPORTANTE: Contraseña real
-FTP_DIR = "/d_so/log"      # <- IMPORTANTE: Cambiar Directorio
+FTP_DIR = "/d_so/log"       # <- IMPORTANTE: Cambiar Directorio según región
 
 #########################################################
-################## Creacion del logger ##################
+################ Configuración de Logging ###############
 #########################################################
-# El log general se queda en la raiz para no perderse
-LOG_FILE = os.path.join(CARPETA_BASE, "data-send.log")
 
+# 1. Obtenemos el mes actual: "2025_12"
+current_month_str = datetime.now().strftime('%Y_%m')
+
+# 2. Definimos la carpeta del mes para LOGS DE SISTEMA
+LOG_MONTH_DIR = os.path.join(CARPETA_BASE, current_month_str)
+
+# 3. Definimos el archivo final: "/home/log/2025_12/data-send.log"
+LOG_FILE = os.path.join(LOG_MONTH_DIR, 'data-send.log')
+
+# 4. Crear estructura de carpetas si no existe
+if not os.path.exists(LOG_MONTH_DIR):
+    try:
+        os.makedirs(LOG_MONTH_DIR)
+        print(f"📁 Carpeta de logs mensuales creada: {LOG_MONTH_DIR}")
+    except OSError as e:
+        print(f"CRITICAL ERROR: No se pudo crear directorio de logs {LOG_MONTH_DIR}: {e}")
+
+# Configuración del Logger (Archivo + Consola)
 logging.basicConfig(
-    filename=LOG_FILE,
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[
+        logging.FileHandler(LOG_FILE),
+        logging.StreamHandler()
+    ]
 )
 
 #########################################################
 ####################### Funciones #######################
 #########################################################
-
-def log(msg):
-    print(msg) 
-    logging.info(msg)
 
 def esperar_hasta_medianoche():
     """Duerme hasta las 00:10:00 del dia siguiente."""
@@ -42,7 +57,7 @@ def esperar_hasta_medianoche():
     mañana = (ahora + timedelta(days=1)).replace(hour=0, minute=10, second=0, microsecond=0)
     
     segundos = (mañana - ahora).total_seconds()
-    log(f"Esperando {segundos:.2f} segundos hasta la medianoche para enviar reporte...")
+    logging.info(f"Esperando {segundos:.2f} segundos hasta la medianoche para enviar reporte...")
     time.sleep(segundos)
 
 def enviar_archivos_ayer():
@@ -58,11 +73,11 @@ def enviar_archivos_ayer():
     # Construimos la ruta completa: /home/log/2025_11_25
     ruta_carpeta_ayer = os.path.join(CARPETA_BASE, nombre_carpeta_ayer)
     
-    log(f"Iniciando proceso. Buscando carpeta de ayer: {ruta_carpeta_ayer}...")
+    logging.info(f"Iniciando proceso. Buscando carpeta de ayer: {ruta_carpeta_ayer}...")
 
     # Verificamos si la carpeta del día existe
     if not os.path.exists(ruta_carpeta_ayer):
-        log(f"ADVERTENCIA: No existe la carpeta {ruta_carpeta_ayer}. No hay datos para enviar.")
+        logging.warning(f"ADVERTENCIA: No existe la carpeta {ruta_carpeta_ayer}. No hay datos para enviar.")
         return
 
     archivos_encontrados = 0
@@ -71,11 +86,12 @@ def enviar_archivos_ayer():
         # 2. Conexión FTP
         ftp = FTP(FTP_HOST)
         ftp.login(FTP_USER, FTP_PASS)
-        log("Conexion FTP establecida.")
+        logging.info(f"Conexion FTP establecida con {FTP_HOST}.")
 
-        # Cambiar directorio remoto
+        # Cambiar directorio remoto base
         ftp.cwd(FTP_DIR)
         
+        # Crear/Entrar carpeta del día en el servidor
         try:
             ftp.mkd(nombre_carpeta_ayer)
         except:
@@ -89,35 +105,40 @@ def enviar_archivos_ayer():
             if archivo.endswith(".csv"):
                 
                 ruta_completa_archivo = os.path.join(ruta_carpeta_ayer, archivo)
-                log(f"Enviando {archivo} ...")
+                # Tamaño del archivo para log
+                size_kb = os.path.getsize(ruta_completa_archivo) / 1024
+                logging.info(f"Enviando {archivo} ({size_kb:.1f} KB)...")
 
                 with open(ruta_completa_archivo, "rb") as f:
                     ftp.storbinary(f"STOR {archivo}", f)
 
-                log(f"--> {archivo} enviado exitosamente.")
+                logging.info(f"--> {archivo} enviado exitosamente.")
                 archivos_encontrados += 1
 
         ftp.quit()
         
         if archivos_encontrados == 0:
-            log(f"La carpeta {ruta_carpeta_ayer} existe pero estaba vacía de CSVs.")
+            logging.warning(f"La carpeta {ruta_carpeta_ayer} existe pero estaba vacía de CSVs.")
         else:
-            log(f"Proceso finalizado. Total archivos enviados desde {nombre_carpeta_ayer}: {archivos_encontrados}")
+            logging.info(f"✅ Proceso finalizado. Total archivos enviados desde {nombre_carpeta_ayer}: {archivos_encontrados}")
 
     except Exception as e:
-        log(f"ERROR CRÍTICO al enviar archivos por FTP: {e}")
+        logging.error(f"❌ ERROR CRÍTICO al enviar archivos por FTP: {e}")
 
 #########################################################
 #################### Loop principal #####################
 #########################################################
 
 if __name__ == "__main__":
-    log("Servicio de envio diario de CSV (por carpetas) iniciado.")
-    
-    #enviar_archivos_ayer()
+    logging.info("--- 🚀 Servicio de envio diario de CSV (FTP) INICIADO ---")
+    logging.info(f"    Directorio base: {CARPETA_BASE}")
+    logging.info(f"    Log de sistema:  {LOG_FILE}")
     
     # Bucle infinito
     while True:
         esperar_hasta_medianoche()
         # Al despertar (00:10:00), enviamos lo del dia anterior
-        enviar_archivos_ayer()
+        try:
+            enviar_archivos_ayer()
+        except Exception as e:
+            logging.error(f"Excepción no manejada en bucle principal: {e}")

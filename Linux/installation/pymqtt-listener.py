@@ -10,24 +10,33 @@ from datetime import datetime
 # =========================================================
 BROKER = "localhost"
 PORT = 1883
-LOG_DIR = '/home/log'
-LOG_FILE = os.path.join(LOG_DIR, 'pymqtt-listener.log')
+LOG_DIR_BASE = '/home/log'
 
-# Asegurar que el directorio base existe antes de configurar el logger
-if not os.path.exists(LOG_DIR):
+# --- CONFIGURACIÓN DE LOGGING MENSUAL ---
+# 1. Obtenemos el mes actual: "2025_12"
+current_month_str = datetime.now().strftime('%Y_%m')
+
+# 2. Definimos la carpeta del mes: "/home/log/2025_12"
+LOG_MONTH_DIR = os.path.join(LOG_DIR_BASE, current_month_str)
+
+# 3. Definimos el archivo final: "/home/log/2025_12/pymqtt-listener.log"
+LOG_FILE = os.path.join(LOG_MONTH_DIR, 'pymqtt-listener.log')
+
+# 4. Crear estructura de carpetas si no existe
+if not os.path.exists(LOG_MONTH_DIR):
     try:
-        os.makedirs(LOG_DIR)
+        os.makedirs(LOG_MONTH_DIR)
+        print(f"📁 Carpeta de logs mensuales creada: {LOG_MONTH_DIR}")
     except OSError as e:
-        print(f"CRITICAL ERROR: No se pudo crear el directorio de logs {LOG_DIR}: {e}")
+        print(f"CRITICAL ERROR: No se pudo crear directorio de logs {LOG_MONTH_DIR}: {e}")
 
 # CONFIGURACIÓN DEL LOGGER
-# Escribe en archivo Y en consola (para debug de systemd)
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
     handlers=[
-        logging.FileHandler(LOG_FILE),
-        logging.StreamHandler()
+        logging.FileHandler(LOG_FILE), # Guardar en carpeta del mes
+        logging.StreamHandler()        # Mostrar en consola (systemd)
     ]
 )
 
@@ -60,37 +69,40 @@ HEADERS = {
 }
 
 # =========================================================
-# LÓGICA DE ALMACENAMIENTO (LOGGER)
+# LÓGICA DE ALMACENAMIENTO (DATOS CSV)
 # =========================================================
 def escribir_log(nombre_variable, payload_str):
     """
-    Gestiona la creación de carpetas y escritura en CSV.
+    Gestiona la creación de carpetas DIARIAS y escritura en CSV.
+    Nota: Los datos siguen en carpetas diarias para granularidad.
     """
     now = datetime.now()
     
-    # 1. Definir nombres basados en fecha
+    # Nombres basados en fecha
     date_str_folder = now.strftime('%Y_%m_%d') 
     time_log = now.strftime('%H:%M:%S')        
 
-    # 2. Verificar/Crear Directorio del Día
-    daily_dir = os.path.join(LOG_DIR, date_str_folder)
+    # Verificar/Crear Directorio del DÍA (dentro de la base)
+    # Ej: /home/log/2025_12_11/
+    daily_dir = os.path.join(LOG_DIR_BASE, date_str_folder)
+    
     if not os.path.exists(daily_dir):
         try:
             os.makedirs(daily_dir)
-            logging.info(f"📂 Carpeta diaria creada: {daily_dir}")
+            logging.info(f"📂 Carpeta de datos diaria creada: {daily_dir}")
         except OSError as e:
             logging.error(f"❌ Error creando directorio diario: {e}")
             return
 
-    # 3. Ruta del Archivo
+    # Ruta del Archivo CSV
     filename = os.path.join(daily_dir, f"{date_str_folder}_{nombre_variable}.csv")
     archivo_existe = os.path.isfile(filename)
 
-    # 4. Procesar los datos
+    # Procesar los datos
     datos_recibidos = payload_str.split(',')
     fila_a_escribir = [time_log] + datos_recibidos
 
-    # 5. Escribir en CSV
+    # Escribir en CSV
     try:
         with open(filename, 'a', newline='') as f:
             writer = csv.writer(f)
@@ -114,7 +126,6 @@ def escribir_log(nombre_variable, payload_str):
 def on_connect(client, userdata, flags, rc):
     if rc == 0:
         logging.info(f"✅ Conectado al Broker MQTT local (Código: {rc})")
-        # Suscribirse a todos los tópicos
         for topic in TOPICS.keys():
             client.subscribe(topic)
             logging.info(f"   Suscrito a: {topic}")
@@ -140,9 +151,9 @@ def on_message(client, userdata, msg):
 # =========================================================
 
 if __name__ == "__main__":
-    logging.info("📝 INICIANDO LOGGER MQTT")
-    logging.info(f"Directorio base: {LOG_DIR}")
-    logging.info(f"Archivo de Log: {LOG_FILE}")
+    logging.info("--- 📝 INICIANDO LOGGER MQTT V2.1 (LOGS MENSUALES) ---")
+    logging.info(f"    Directorio base: {LOG_DIR_BASE}")
+    logging.info(f"    Log de sistema:  {LOG_FILE}")
 
     client = mqtt.Client()
     client.on_connect = on_connect

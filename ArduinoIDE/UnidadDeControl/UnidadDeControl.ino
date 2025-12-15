@@ -26,7 +26,7 @@
 #define DEBUG_MODE 0       // 0 OBLIGATORIO si usas pines TX/RX para sensores
 
 // --- RED Y MQTT ---
-#define MQTT_SERVER "192.168.101.250"
+#define MQTT_SERVER "192.168.1.250"
 #define MQTT_PORT 1883
 #define MQTT_CLIENT_ID "Wemos_SO"
 

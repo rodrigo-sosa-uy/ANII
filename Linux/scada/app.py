@@ -6,74 +6,151 @@ from flask_socketio import SocketIO
 import paho.mqtt.client as mqtt
 import os
 import csv
+import logging
 from datetime import datetime
 
-# --- CONFIGURACIÓN ---
+# =========================================================
+# CONFIGURACIÓN DE LOGGING (MENSUAL)
+# =========================================================
+LOG_DIR_BASE = '/home/log'
+current_month_str = datetime.now().strftime('%Y_%m')
+LOG_MONTH_DIR = os.path.join(LOG_DIR_BASE, current_month_str)
+LOG_FILE = os.path.join(LOG_MONTH_DIR, 'scada.log')
+
+if not os.path.exists(LOG_MONTH_DIR):
+    try: os.makedirs(LOG_MONTH_DIR)
+    except: pass
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[logging.FileHandler(LOG_FILE), logging.StreamHandler()]
+)
+
+def log(msg):
+    logging.info(msg)
+
+# =========================================================
+# CONFIGURACIÓN APP
+# =========================================================
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'secreto_monitor'
+app.config['SECRET_KEY'] = 'secreto_monitor_v3'
 socketio = SocketIO(app, cors_allowed_origins='*', async_mode='eventlet')
 
 BROKER = "localhost"
 PORT = 1883
-TOPICS = ["measure/temperature", "measure/radiation", "measure/humidity"]
-LOG_DIR = '/home/log'
 
-# Memoria temporal (último valor)
+# Tópicos V2.0 Completos (Sensores + Control)
+TOPICS = [
+    "measure/environment", 
+    "measure/radiation",   
+    "measure/temperature", 
+    "measure/level_in",    
+    "measure/level_out"    
+]
+
+# Memoria temporal (Estado actual)
 last_data = {
-    "temperature": "--",
+    # Variables Proceso
+    "lvl_in_dist": "--",
+    "lvl_in_weight": "--",
+    "int_temp": "--",
+    "lvl_out_dist": "--",
+    # Variables Ambiente
     "radiation": "--",
-    "humidity": "--"
+    "env_temp": "--",
+    "env_hum": "--",
+    "env_pres": "--"
 }
 
-# --- FUNCIONES AUXILIARES ---
-
-def get_today_history(sensor_name):
-    """
-    Lee el CSV del día actual para un sensor específico y devuelve una lista de puntos.
-    Estructura: [{'time': '10:00:00', 'value': 25.5}, ...]
-    """
+# =========================================================
+# FUNCIONES AUXILIARES (HISTORIAL)
+# =========================================================
+def get_today_history(variable_web):
     data_points = []
     try:
         now = datetime.now()
-        date_str = now.strftime('%Y_%m_%d') # Nombre carpeta: 2025_12_11
+        date_str = now.strftime('%Y_%m_%d')
+        daily_dir = os.path.join(LOG_DIR_BASE, date_str)
         
-        # Ruta: /home/log/2025_12_11/2025_12_11_temperature.csv
-        file_path = os.path.join(LOG_DIR, date_str, f"{date_str}_{sensor_name}.csv")
+        map_config = {
+            'env_temp': ('environment', 1),
+            'env_hum':  ('environment', 2),
+            'env_pres': ('environment', 3),
+            'radiation': ('radiation', 1),
+            'int_temp': ('temperature', 1),
+            'lvl_in_weight': ('level_in', 1),
+            'lvl_in_dist':   ('level_in', 2),
+            'lvl_out_dist':  ('level_out', 2) 
+        }
+        
+        if variable_web not in map_config: return []
+
+        file_suffix, col_idx = map_config[variable_web]
+        filename = f"{date_str}_{file_suffix}.csv"
+        file_path = os.path.join(daily_dir, filename)
         
         if os.path.exists(file_path):
             with open(file_path, 'r') as f:
                 reader = csv.reader(f)
-                next(reader, None) # Saltar encabezado
+                next(reader, None) 
                 for row in reader:
-                    if len(row) >= 2:
-                        # Asumimos Col 0: Hora, Col 1: Valor
+                    if len(row) > col_idx:
                         try:
-                            val = float(row[1])
+                            val = float(row[col_idx])
                             data_points.append({'time': row[0], 'value': val})
-                        except ValueError:
-                            pass # Ignorar datos corruptos
+                        except ValueError: pass
     except Exception as e:
-        print(f"Error leyendo historial {sensor_name}: {e}")
+        logging.error(f"Error historial {variable_web}: {e}")
         
     return data_points
 
-# --- LÓGICA MQTT ---
-
+# =========================================================
+# LÓGICA MQTT
+# =========================================================
 def on_connect(client, userdata, flags, rc):
-    print(f"✅ Conectado al Broker MQTT (Código: {rc})")
-    for t in TOPICS:
-        client.subscribe(t)
+    if rc == 0:
+        log(f"✅ SCADA Conectado al Broker MQTT.")
+        for t in TOPICS:
+            client.subscribe(t)
+    else:
+        logging.error(f"❌ Falló conexión MQTT. Código: {rc}")
 
 def on_message(client, userdata, msg):
-    topic = msg.topic
-    payload = msg.payload.decode()
-    variable = topic.split("/")[-1]
-    
-    # Guardamos en memoria
-    last_data[variable] = payload
-    
-    # Enviamos a la web (SocketIO)
-    socketio.emit('nuevo_dato', {'sensor': variable, 'valor': payload})
+    try:
+        topic = msg.topic
+        payload = msg.payload.decode()
+        
+        if topic == "measure/environment":
+            parts = payload.split(',')
+            if len(parts) >= 3:
+                update_and_emit('env_temp', parts[0])
+                update_and_emit('env_hum', parts[1])
+                update_and_emit('env_pres', parts[2])
+                
+        elif topic == "measure/level_in":
+            parts = payload.split(',')
+            if len(parts) >= 2:
+                update_and_emit('lvl_in_weight', parts[0])
+                update_and_emit('lvl_in_dist', parts[1])
+
+        elif topic == "measure/level_out":
+            parts = payload.split(',')
+            if len(parts) >= 2:
+                update_and_emit('lvl_out_dist', parts[1])
+
+        elif topic == "measure/radiation":
+            update_and_emit('radiation', payload)
+
+        elif topic == "measure/temperature":
+            update_and_emit('int_temp', payload)
+            
+    except Exception as e:
+        logging.error(f"Error MQTT: {e}")
+
+def update_and_emit(key, value):
+    last_data[key] = value
+    socketio.emit('nuevo_dato', {'sensor': key, 'valor': value})
 
 client = mqtt.Client()
 client.on_connect = on_connect
@@ -83,23 +160,49 @@ try:
     client.connect(BROKER, PORT, 60)
     client.loop_start()
 except Exception as e:
-    print(f"❌ Error conectando a MQTT: {e}")
+    logging.critical(f"❌ Error fatal MQTT: {e}")
 
-# --- RUTAS WEB ---
+# =========================================================
+# SOCKETIO - CONTROL DE PROCESO
+# =========================================================
+@socketio.on('control_cmd')
+def handle_control_command(json_data):
+    """
+    Recibe comandos desde la Web y los publica en MQTT
+    json_data: {'topic': 'control/in_valve', 'payload': '1'}
+    """
+    try:
+        topic = json_data.get('topic')
+        payload = json_data.get('payload')
+        
+        if topic and payload is not None:
+            # Publicar al Wemos
+            client.publish(topic, str(payload))
+            log(f"🎮 Comando Web -> MQTT: [{topic}] = {payload}")
+            
+    except Exception as e:
+        logging.error(f"Error procesando comando web: {e}")
 
+# =========================================================
+# RUTAS WEB
+# =========================================================
 @app.route('/')
 def index():
     return render_template('index.html', datos=last_data)
 
 @app.route('/api/history')
 def history():
-    """Endpoint para que la web descargue los datos del día al iniciar"""
     return jsonify({
-        'temperature': get_today_history('temperature'),
+        'env_temp': get_today_history('env_temp'),
+        'env_hum': get_today_history('env_hum'),
+        'env_pres': get_today_history('env_pres'),
         'radiation': get_today_history('radiation'),
-        'humidity': get_today_history('humidity')
+        'int_temp': get_today_history('int_temp'),
+        'lvl_in_dist': get_today_history('lvl_in_dist'),
+        'lvl_in_weight': get_today_history('lvl_in_weight'),
+        'lvl_out_dist': get_today_history('lvl_out_dist')
     })
 
 if __name__ == '__main__':
-    print("🚀 Servidor Web con Gráficos Iniciado")
+    log("🚀 Servidor Web SCADA V3 Iniciado")
     socketio.run(app, host='0.0.0.0', port=5000)

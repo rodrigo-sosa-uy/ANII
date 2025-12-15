@@ -130,4 +130,4 @@ else
     echo "⚠️  No se encontró notifier.service en el directorio"
 fi
 
-sudo /usr/local/python3 /usr/local/bin/setup-headless.py
+sudo python3 /usr/local/bin/setup-headless.py
