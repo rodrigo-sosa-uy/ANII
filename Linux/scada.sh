@@ -14,7 +14,7 @@
 #### - notifier.service                                   ####
 #### - scada.service                                      ####
 #### - utec.png                                           ####
-#### deben estar en la carpeta scada.                     ####
+#### deben estar en la carpeta Linux/scada.               ####
 ##############################################################
 
 mkdir /home/scada
@@ -129,5 +129,3 @@ if [ -f "scada/notifier.service" ]; then
 else
     echo "⚠️  No se encontró notifier.service en el directorio"
 fi
-
-sudo python3 /usr/local/bin/setup-headless.py

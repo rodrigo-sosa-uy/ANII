@@ -54,8 +54,8 @@ sudo apt install -y mosquitto mosquitto-dev mosquitto-clients
 sudo mkdir -p /home/log
 sudo chmod 777 /home/log
 
-sudo mv dev/switch-monitor.py /usr/local/bin/
-sudo mv dev/setup-headless.py /usr/local/bin/
+sudo mv dev/switch-monitor.py /home/utils
+sudo mv dev/setup-headless.py /home/utils
 
 sudo chmod 777 net.sh
 sudo chmod 777 scada.sh
