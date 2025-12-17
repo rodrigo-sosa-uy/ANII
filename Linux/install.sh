@@ -54,6 +54,9 @@ sudo apt install -y mosquitto mosquitto-dev mosquitto-clients
 sudo mkdir -p /home/log
 sudo chmod 777 /home/log
 
+sudo mkdir -p /home/utils
+sudo chmod 777 /home/utils
+
 sudo mv dev/switch-monitor.py /home/utils
 sudo mv dev/setup-headless.py /home/utils
 
