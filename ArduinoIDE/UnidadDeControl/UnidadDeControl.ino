@@ -1,11 +1,13 @@
 /*
  * -----------------------------------------------------------------------
- * SISTEMA INTEGRAL SCADA - WEMOS D1 R2 (VERSIÓN 2.0)
+ * SISTEMA INTEGRAL SCADA - WEMOS D1 R2 (VERSIÓN 3.3 - LOGICA LOOP OPTIMIZADA)
  * -----------------------------------------------------------------------
- * Cambios V2:
- * - Tópicos de nivel separados (level_in / level_out)
- * - Tópico de control de proceso general (control/process)
- * - Estructura preparada para expansión futura
+ * Estado Actual:
+ * - Hardware: Configuración de pines definitiva (Full IO).
+ * - Comunicación: MQTT completo.
+ * - Lógica Loop: 
+ * > Reposo: Todo cada 15 min.
+ * > Activo: Proceso cada 10 seg + Ambiente cada 15 min.
  * -----------------------------------------------------------------------
  */
 
@@ -21,43 +23,32 @@
 #include <HX711.h> 
 
 // =========================================================
-// 1. CONFIGURACIÓN DEL SISTEMA
+// 1. CONFIGURACIÓN
 // =========================================================
-#define DEBUG_MODE 0       // 0 OBLIGATORIO si usas pines TX/RX para sensores
+#define DEBUG_MODE 0       
 
-// --- RED Y MQTT ---
-#define MQTT_SERVER "192.168.1.250"
+#define MQTT_SERVER "192.168.101.250"
 #define MQTT_PORT 1883
-#define MQTT_CLIENT_ID "Wemos_SO"
+#define MQTT_CLIENT_ID "Wemos_SCADA_V3_Clean"
 
 // --- TEMPORIZADORES ---
 const unsigned long INTERVAL_METEO   = 15 * 60 * 1000; // 15 Minutos
-const unsigned long INTERVAL_PROCESS = 15 * 1000;       // 15 Segundos
+const unsigned long INTERVAL_PROCESS = 10 * 1000;      // 10 Segundos (Control Activo)
 
 // =========================================================
-// 2. MAPEO DE PINES (WEMOS D1 R2)
+// 2. MAPEO DE PINES (WEMOS D1 R2 - CONFIGURACIÓN FINAL)
 // =========================================================
-
-// I2C (BME + ADS)
-#define PIN_I2C_SDA     D4
-#define PIN_I2C_SCL     D3
-
-// TERMOCUPLA (SPI SW)
-#define MAX_SCK         D5
-#define MAX_SO          D6
-#define MAX_CS          D7
-
-// ACTUADORES
-#define PIN_RELAY_IN    1
-#define PIN_RELAY_OUT   3
-
-// NIVEL ENTRADA (HX711)
-#define HX_IN_DT        D2  
-#define HX_IN_SCK       D8  
-
-// NIVEL ENTRADA (ULTRASONIDO) -> Pines Serial
-#define US_IN_TRIG      D1  // TX
-#define US_IN_ECHO      D0  // RX
+#define PIN_RELAY_IN    1   // TX (GPIO 1)
+#define PIN_RELAY_OUT   3   // RX (GPIO 3)
+#define US_IN_TRIG      D1  // GPIO 5
+#define US_IN_ECHO      D0  // GPIO 16
+#define HX_IN_DT        D2  // GPIO 4
+#define HX_IN_SCK       D8  // GPIO 15
+#define PIN_I2C_SDA     D4  // GPIO 2
+#define PIN_I2C_SCL     D3  // GPIO 0
+#define MAX_SCK         D5  // GPIO 14
+#define MAX_SO          D6  // GPIO 12
+#define MAX_CS          D7  // GPIO 13
 
 // =========================================================
 // 3. OBJETOS Y VARIABLES
@@ -71,67 +62,57 @@ Adafruit_ADS1115 ads;
 MAX6675 thermocouple(MAX_SCK, MAX_CS, MAX_SO);
 HX711 scaleIn;
 
-// Estado del Sistema
 struct State {
   float temp_amb;
   float hum_amb;
   float pres_amb;
   float radiation;
   float temp_int;
-  
-  // Nivel Entrada
   float lvl_in_weight;
   float lvl_in_dist;
-  
-  // Nivel Salida (Futuro)
-  float lvl_out_weight;
+  float chamber_amount;
   float lvl_out_dist;
-
-  // Estado del Proceso
-  bool process_active; // True = ON, False = OFF
+  bool valve_in_state;
+  bool valve_out_state;
+  bool process_active;
 } sysState;
 
 unsigned long lastMeteoTime = 0;
 unsigned long lastProcessTime = 0;
 
-// Constantes
 const float PYR_GAIN = 0.0078125;
 const float PYR_CAL = 70.9e-3;
-const float SCALE_CAL = 2280.0;
+const float SCALE_CAL = 2280.0; 
 
-// --- DEFINICIÓN DE TÓPICOS (V2.0) ---
-const char* TP_MEAS_ENV      = "measure/environment";   // T,H,P
-const char* TP_MEAS_RAD      = "measure/radiation";     // Rad
-const char* TP_MEAS_TEMP     = "measure/temperature";   // T_Int
-const char* TP_MEAS_LVL_IN   = "measure/level_in";      // Peso,Dist (Entrada)
-const char* TP_MEAS_LVL_OUT  = "measure/level_out";     // Peso,Dist (Salida)
+const char* TP_MEAS_ENV      = "measure/environment";   
+const char* TP_MEAS_RAD      = "measure/radiation";     
+const char* TP_MEAS_TEMP     = "measure/temperature";   
+const char* TP_MEAS_LVL_IN   = "measure/level_in";      
+const char* TP_MEAS_LVL_OUT  = "measure/level_out"; 
+const char* TP_MEAS_CHAMBER  = "measure/chamber_level"; 
 
 const char* TP_CTRL_IN       = "control/in_valve";
 const char* TP_CTRL_OUT      = "control/out_valve";
-const char* TP_CTRL_PROCESS  = "control/process";       // General Start/Stop
+const char* TP_CTRL_PROCESS  = "control/process";       
+const char* TP_ALARM         = "measure/alarm"; 
 
 // =========================================================
 // 4. SETUP
 // =========================================================
 void setup() {
-  if (DEBUG_MODE) {
-    Serial.begin(115200);
-    Serial.println("INIT");
-  }
-
-  // Pines Salida
   pinMode(PIN_RELAY_IN, OUTPUT);
   pinMode(PIN_RELAY_OUT, OUTPUT);
   digitalWrite(PIN_RELAY_IN, LOW);
   digitalWrite(PIN_RELAY_OUT, LOW);
+  sysState.valve_in_state = false;
+  sysState.valve_out_state = false;
 
   pinMode(US_IN_TRIG, OUTPUT);
   pinMode(US_IN_ECHO, INPUT);
 
-  // Estado inicial
   sysState.process_active = false;
-  sysState.lvl_out_weight = 0.0; // Placeholder futuro
-  sysState.lvl_out_dist = 0.0;   // Placeholder futuro
+  sysState.chamber_amount = 0.0;
+  sysState.lvl_out_dist = 0.0;  
 
   initWiFi();
   initMQTT();
@@ -139,7 +120,7 @@ void setup() {
 }
 
 // =========================================================
-// 5. LOOP
+// 5. LOOP PRINCIPAL (OPTIMIZADO)
 // =========================================================
 void loop() {
   if (!mqttClient.connected()) { reconnect(); }
@@ -147,45 +128,63 @@ void loop() {
 
   unsigned long now = millis();
 
-  // --- TAREA AMBIENTAL (Lenta) ---
+  // --- TAREA AMBIENTAL (Lenta - 15 min) ---
+  // Se ejecuta SIEMPRE, esté el proceso activo o no.
   if (now - lastMeteoTime > INTERVAL_METEO) {
     lastMeteoTime = now;
+    
     measureEnvironment();
     measureRadiation();
-
+    
     pubEnvironment();
     pubRadiation();
 
-    if (!sysState.process_active){
-      measureInternalTemp();
-      measureLevelIn();
-      // measureLevelOut(); // Futuro
-
-      pubInternalTemp();
-      pubLevelIn();
-      //pubLevelOut(); // Futuro
+    // Si el proceso está INACTIVO, reportamos el estado del tanque/cámara también cada 15 min
+    // para mantener un registro histórico de "reposo".
+    if (!sysState.process_active) {
+       measureInternalTemp();
+       measureLevelIn(); 
+       
+       pubInternalTemp();
+       pubLevelIn();
+       //pubChamberLevel();
+       //pubLevelOut(); 
     }
   }
 
-  // --- TAREA PROCESO (Rápida) ---
+  // --- TAREA PROCESO (Rápida - 10 seg) ---
+  // Solo se ejecuta si el usuario activó el proceso (START)
   if (sysState.process_active) {
     if (now - lastProcessTime > INTERVAL_PROCESS) {
       lastProcessTime = now;
+      
       measureInternalTemp();
-      measureLevelIn();
-      // measureLevelOut(); // Futuro
+      measureLevelIn(); 
 
+      // Ejecutar lógica de control
+      runProcessLogic();
+
+      // Publicar datos de proceso con alta frecuencia
       pubInternalTemp();
       pubLevelIn();
-      //pubLevelOut(); // Futuro
+      //pubChamberLevel(); 
+      //pubLevelOut(); 
+      
+      // Feedback de válvulas por si hubo cierre automático
+      if (!sysState.valve_in_state) mqttClient.publish(TP_CTRL_IN, "0");
     }
-
-    // Aca va la lógica de control, apertura de valvula controlada
   }
 }
 
 // =========================================================
-// 6. INIT SUBSISTEMAS
+// 6. LÓGICA DE PROCESO
+// =========================================================
+void runProcessLogic() {
+   // Placeholder para futura lógica de control
+}
+
+// =========================================================
+// 7. INICIALIZACIÓN
 // =========================================================
 void initWiFi() {
   wifiMulti.addAP("Wifi para pobres", "1234567890");
@@ -201,18 +200,16 @@ void initMQTT() {
 
 void initSensors() {
   Wire.begin(PIN_I2C_SDA, PIN_I2C_SCL);
-  if (!bme.begin(0x76)) { /* Err */ }
-  
+  bme.begin(0x76);
   ads.setGain(GAIN_SIXTEEN);
-  if (!ads.begin()) { /* Err */ }
-
+  ads.begin();
   scaleIn.begin(HX_IN_DT, HX_IN_SCK);
   scaleIn.set_scale(SCALE_CAL);
   scaleIn.tare();
 }
 
 // =========================================================
-// 7. MEDICIÓN
+// 8. MEDICIÓN
 // =========================================================
 void measureEnvironment() {
   sysState.temp_amb = bme.readTemperature();
@@ -237,14 +234,12 @@ void measureInternalTemp() {
 }
 
 void measureLevelIn() {
-  // Ultrasonido In
   digitalWrite(US_IN_TRIG, LOW); delayMicroseconds(2);
   digitalWrite(US_IN_TRIG, HIGH); delayMicroseconds(10);
   digitalWrite(US_IN_TRIG, LOW);
   long dur = pulseIn(US_IN_ECHO, HIGH, 25000);
   sysState.lvl_in_dist = (dur == 0) ? -1.0 : (dur * 0.034 / 2);
 
-  // Peso In
   if (scaleIn.is_ready()) {
     sysState.lvl_in_weight = scaleIn.get_units(1);
   } else {
@@ -253,7 +248,7 @@ void measureLevelIn() {
 }
 
 // =========================================================
-// 8. PUBLICACIÓN
+// 9. PUBLICACIÓN
 // =========================================================
 void pubEnvironment() {
   char msg[50];
@@ -278,37 +273,39 @@ void pubLevelIn() {
   snprintf(msg, sizeof(msg), "%.2f,%.2f", sysState.lvl_in_weight, sysState.lvl_in_dist);
   mqttClient.publish(TP_MEAS_LVL_IN, msg);
 }
-/*
+
 void pubLevelOut() {
   char msg[30];
-  // Placeholder para el futuro
   snprintf(msg, sizeof(msg), "%.2f,%.2f", sysState.lvl_out_weight, sysState.lvl_out_dist);
   mqttClient.publish(TP_MEAS_LVL_OUT, msg);
 }
-*/
+
+void pubChamberLevel() {
+  char msg[15];
+  snprintf(msg, sizeof(msg), "%.3f", sysState.chamber_amount);
+  mqttClient.publish(TP_MEAS_CHAMBER, msg);
+}
+
 // =========================================================
-// 9. CONTROL (CALLBACK)
+// 10. CONTROL (CALLBACK MQTT)
 // =========================================================
 void mqttCallback(char* topic, byte* payload, unsigned int length) {
   String msg = "";
   for (int i = 0; i < length; i++) msg += (char)payload[i];
   String strTopic = String(topic);
+  
+  bool cmdState = (msg == "1");
 
-  // 1. Control Válvula Entrada
   if (strTopic == TP_CTRL_IN) {
-    digitalWrite(PIN_RELAY_IN, (msg == "1" ? HIGH : LOW));
+    digitalWrite(PIN_RELAY_IN, cmdState ? HIGH : LOW);
+    sysState.valve_in_state = cmdState;
   } 
-  // 2. Control Válvula Salida
   else if (strTopic == TP_CTRL_OUT) {
-    digitalWrite(PIN_RELAY_OUT, (msg == "1" ? HIGH : LOW));
+    digitalWrite(PIN_RELAY_OUT, cmdState ? HIGH : LOW);
+    sysState.valve_out_state = cmdState;
   }
-  // 3. Control Proceso General (Start/Stop)
   else if (strTopic == TP_CTRL_PROCESS) {
-    sysState.process_active = (msg == "1");
-    // Feedback inmediato o acciones al detener
-    if (!sysState.process_active) {
-       digitalWrite(PIN_RELAY_IN, LOW);
-    }
+    sysState.process_active = cmdState;
   }
 }
 
@@ -316,7 +313,6 @@ void reconnect() {
   while (!mqttClient.connected()) {
     String clientId = String(MQTT_CLIENT_ID) + "-" + String(random(0xffff), HEX);
     if (mqttClient.connect(clientId.c_str())) {
-      // Suscribirse a TODOS los canales de control
       mqttClient.subscribe(TP_CTRL_IN);
       mqttClient.subscribe(TP_CTRL_OUT);
       mqttClient.subscribe(TP_CTRL_PROCESS);
