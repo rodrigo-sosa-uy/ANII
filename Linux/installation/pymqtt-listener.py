@@ -16,7 +16,7 @@ LOG_DIR_BASE = '/home/log'
 # 1. Obtenemos el mes actual: "2025_12"
 current_month_str = datetime.now().strftime('%Y_%m')
 
-# 2. Definimos la carpeta del mes: "/home/log/2025_12"
+# 2. Definimos la carpeta del mes para LOGS DE SISTEMA
 LOG_MONTH_DIR = os.path.join(LOG_DIR_BASE, current_month_str)
 
 # 3. Definimos el archivo final: "/home/log/2025_12/pymqtt-listener.log"
@@ -43,25 +43,27 @@ logging.basicConfig(
 # Lista de tópicos a escuchar
 TOPICS = {
     # Sensores
-    "measure/environment": "environment",
-    "measure/radiation":   "radiation",
-    "measure/temperature": "temperature",
-    "measure/level_in":    "level_in",
-    "measure/level_out":   "level_out",
+    "measure/environment":   "environment",
+    "measure/radiation":     "radiation",
+    "measure/temperature":   "temperature",
+    "measure/level_in":      "level_in",
+    "measure/level_out":     "level_out",
+    "measure/chamber_level": "chamber_level", # Agregado para evitar warnings
     
     # Control (Eventos)
-    "control/in_valve":    "control_in",
-    "control/out_valve":   "control_out",
-    "control/process":     "control_process"
+    "control/in_valve":      "control_in",
+    "control/out_valve":     "control_out",
+    "control/process":       "control_process"
 }
 
 # Definición de Encabezados CSV
 HEADERS = {
-    'environment': ['Time', 'Amb_Temp(°C)', 'Humidity(%)', 'Pressure(hPa)'],
-    'radiation':   ['Time', 'Radiation(W/m^2)'],
-    'temperature': ['Time', 'Internal_Temp(°C)'],
-    'level_in':    ['Time', 'Weight(kg)', 'Distance(cm)'],
-    'level_out':   ['Time', 'Weight(kg)', 'Distance(cm)'],
+    'environment':   ['Time', 'Amb_Temp(°C)', 'Humidity(%)', 'Pressure(hPa)'],
+    'radiation':     ['Time', 'Radiation(W/m^2)'],
+    'temperature':   ['Time', 'Internal_Temp(°C)'],
+    'level_in':      ['Time', 'Weight(kg)', 'Distance(cm)', 'Volume(ml)'],
+    'level_out':     ['Time', 'Weight(kg)', 'Distance(cm)', 'Volume(ml)'],
+    'chamber_level': ['Time', 'Volume(ml)'],
     
     'control_in':      ['Time', 'State(1=OPEN/0=CLOSE)'],
     'control_out':     ['Time', 'State(1=OPEN/0=CLOSE)'],
@@ -126,6 +128,7 @@ def escribir_log(nombre_variable, payload_str):
 def on_connect(client, userdata, flags, rc):
     if rc == 0:
         logging.info(f"✅ Conectado al Broker MQTT local (Código: {rc})")
+        # Suscribirse a todos los tópicos
         for topic in TOPICS.keys():
             client.subscribe(topic)
             logging.info(f"   Suscrito a: {topic}")
@@ -151,7 +154,7 @@ def on_message(client, userdata, msg):
 # =========================================================
 
 if __name__ == "__main__":
-    logging.info("--- 📝 INICIANDO LOGGER MQTT V2.1 (LOGS MENSUALES) ---")
+    logging.info("--- 📝 INICIANDO LOGGER MQTT V2.0 ---")
     logging.info(f"    Directorio base: {LOG_DIR_BASE}")
     logging.info(f"    Log de sistema:  {LOG_FILE}")
 

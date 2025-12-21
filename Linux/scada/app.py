@@ -10,21 +10,27 @@ import logging
 from datetime import datetime
 
 # =========================================================
-# CONFIGURACIÓN DE LOGGING
+# CONFIGURACIÓN DE LOGGING (MENSUAL)
 # =========================================================
 LOG_DIR_BASE = '/home/log'
 current_month_str = datetime.now().strftime('%Y_%m')
 LOG_MONTH_DIR = os.path.join(LOG_DIR_BASE, current_month_str)
 LOG_FILE = os.path.join(LOG_MONTH_DIR, 'scada.log')
 
+# Crear carpeta si no existe
 if not os.path.exists(LOG_MONTH_DIR):
-    try: os.makedirs(LOG_MONTH_DIR)
-    except: pass
+    try:
+        os.makedirs(LOG_MONTH_DIR)
+    except:
+        pass
 
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
-    handlers=[logging.FileHandler(LOG_FILE), logging.StreamHandler()]
+    handlers=[
+        logging.FileHandler(LOG_FILE),
+        logging.StreamHandler()
+    ]
 )
 
 def log(msg):
@@ -40,40 +46,41 @@ socketio = SocketIO(app, cors_allowed_origins='*', async_mode='eventlet')
 BROKER = "localhost"
 PORT = 1883
 
-# Tópicos a escuchar (Sensores + CONTROL para Feedback)
+# Lista de Tópicos
 TOPICS = [
     "measure/environment", 
     "measure/radiation",   
     "measure/temperature", 
     "measure/level_in",    
     "measure/level_out",
-    "control/in_valve",    # Escuchamos para saber el estado real
+    "measure/chamber_level",
+    "control/in_valve",
     "control/out_valve",
     "control/process"
 ]
 
-# Memoria temporal (Estado actual)
+# Estado actual (Cache)
 last_data = {
-    # Variables Proceso
-    "lvl_in_dist": "--",
-    "lvl_in_weight": "--",
-    "int_temp": "--",
-    "lvl_out_dist": "--",
+    # Proceso (ml y °C)
+    "lvl_in": "--",      # Volumen Entrada (ml)
+    "chamber_level": "--", # Volumen Cámara (ml)
+    "int_temp": "--",      # Temp Cámara
+    "lvl_out": "--",     # Volumen Salida (ml)
     
-    # Variables Ambiente
+    # Ambiente
     "radiation": "--",
     "env_temp": "--",
     "env_hum": "--",
     "env_pres": "--",
     
-    # Estados de Actuadores (Feedback)
-    "in_valve": "0",   # 0: Cerrada, 1: Abierta
-    "out_valve": "0",
-    "process": "0"     # 0: Stop, 1: Start
+    # Estados de Control
+    "in_valve": "0", 
+    "out_valve": "0", 
+    "process": "0"
 }
 
 # =========================================================
-# FUNCIONES AUXILIARES (HISTORIAL)
+# HISTORIAL (Lectura de CSVs)
 # =========================================================
 def get_today_history(variable_web):
     data_points = []
@@ -82,15 +89,21 @@ def get_today_history(variable_web):
         date_str = now.strftime('%Y_%m_%d')
         daily_dir = os.path.join(LOG_DIR_BASE, date_str)
         
+        # Mapeo: Variable Web -> (Archivo CSV, Índice Columna)
+        # CSV Structure:
+        # environment: [Time(0), Temp(1), Hum(2), Pres(3)]
+        # level_in/out: [Time(0), Weight(1), Dist(2), Vol(3)]
+        # chamber: [Time(0), Vol(1)]
+        
         map_config = {
-            'env_temp': ('environment', 1),
-            'env_hum':  ('environment', 2),
-            'env_pres': ('environment', 3),
-            'radiation': ('radiation', 1),
-            'int_temp': ('temperature', 1),
-            'lvl_in_weight': ('level_in', 1),
-            'lvl_in_dist':   ('level_in', 2),
-            'lvl_out_dist':  ('level_out', 2) 
+            'env_temp':      ('environment', 1),
+            'env_hum':       ('environment', 2),
+            'env_pres':      ('environment', 3),
+            'radiation':     ('radiation', 1),
+            'int_temp':      ('temperature', 1),
+            'chamber_level': ('chamber_level', 1),
+            'lvl_in':        ('level_in', 3),  # Columna 3 es Volumen
+            'lvl_out':       ('level_out', 3)  # Columna 3 es Volumen
         }
         
         if variable_web not in map_config: return []
@@ -110,16 +123,20 @@ def get_today_history(variable_web):
                             data_points.append({'time': row[0], 'value': val})
                         except ValueError: pass
     except Exception as e:
-        logging.error(f"Error historial {variable_web}: {e}")
+        logging.error(f"Error leyendo historial {variable_web}: {e}")
         
     return data_points
 
 # =========================================================
 # LÓGICA MQTT
 # =========================================================
+def update_and_emit(key, value):
+    last_data[key] = value
+    socketio.emit('nuevo_dato', {'sensor': key, 'valor': value})
+
 def on_connect(client, userdata, flags, rc):
     if rc == 0:
-        log(f"✅ SCADA Conectado al Broker MQTT.")
+        log("✅ SCADA Conectado al Broker MQTT.")
         for t in TOPICS:
             client.subscribe(t)
     else:
@@ -130,8 +147,10 @@ def on_message(client, userdata, msg):
         topic = msg.topic
         payload = msg.payload.decode()
         
-        # --- SENSORES ---
+        # --- PARSEO DE DATOS ---
+        
         if topic == "measure/environment":
+            # Payload: "25.5,60.0,1013.2"
             parts = payload.split(',')
             if len(parts) >= 3:
                 update_and_emit('env_temp', parts[0])
@@ -139,15 +158,19 @@ def on_message(client, userdata, msg):
                 update_and_emit('env_pres', parts[2])
                 
         elif topic == "measure/level_in":
+            # Payload: "Peso,Dist,Volumen"
             parts = payload.split(',')
-            if len(parts) >= 2:
-                update_and_emit('lvl_in_weight', parts[0])
-                update_and_emit('lvl_in_dist', parts[1])
+            if len(parts) >= 3:
+                update_and_emit('lvl_in', parts[2]) # Usamos Volumen (idx 2)
 
         elif topic == "measure/level_out":
+            # Payload: "Peso,Dist,Volumen"
             parts = payload.split(',')
-            if len(parts) >= 2:
-                update_and_emit('lvl_out_dist', parts[1])
+            if len(parts) >= 3:
+                update_and_emit('lvl_out', parts[2]) # Usamos Volumen
+
+        elif topic == "measure/chamber_level":
+            update_and_emit('chamber_level', payload)
 
         elif topic == "measure/radiation":
             update_and_emit('radiation', payload)
@@ -155,23 +178,18 @@ def on_message(client, userdata, msg):
         elif topic == "measure/temperature":
             update_and_emit('int_temp', payload)
             
-        # --- CONTROL (FEEDBACK DE ESTADO) ---
+        # --- FEEDBACK CONTROL ---
         elif topic == "control/in_valve":
             update_and_emit('in_valve', payload)
-            
         elif topic == "control/out_valve":
             update_and_emit('out_valve', payload)
-            
         elif topic == "control/process":
             update_and_emit('process', payload)
             
     except Exception as e:
-        logging.error(f"Error MQTT: {e}")
+        logging.error(f"Error procesando mensaje MQTT: {e}")
 
-def update_and_emit(key, value):
-    last_data[key] = value
-    socketio.emit('nuevo_dato', {'sensor': key, 'valor': value})
-
+# Iniciar Cliente MQTT
 client = mqtt.Client()
 client.on_connect = on_connect
 client.on_message = on_message
@@ -183,20 +201,18 @@ except Exception as e:
     logging.critical(f"❌ Error fatal MQTT: {e}")
 
 # =========================================================
-# SOCKETIO
+# SOCKETIO - COMANDOS
 # =========================================================
 @socketio.on('control_cmd')
 def handle_control_command(json_data):
     try:
         topic = json_data.get('topic')
         payload = json_data.get('payload')
-        
         if topic and payload is not None:
             client.publish(topic, str(payload))
-            log(f"🎮 Comando Web -> MQTT: [{topic}] = {payload}")
-            
+            log(f"🎮 Comando Web: [{topic}] = {payload}")
     except Exception as e:
-        logging.error(f"Error procesando comando web: {e}")
+        logging.error(f"Error comando web: {e}")
 
 # =========================================================
 # RUTAS WEB
@@ -213,11 +229,11 @@ def history():
         'env_pres': get_today_history('env_pres'),
         'radiation': get_today_history('radiation'),
         'int_temp': get_today_history('int_temp'),
-        'lvl_in_dist': get_today_history('lvl_in_dist'),
-        'lvl_in_weight': get_today_history('lvl_in_weight'),
-        'lvl_out_dist': get_today_history('lvl_out_dist')
+        'lvl_in': get_today_history('lvl_in'),
+        'chamber_level': get_today_history('chamber_level'),
+        'lvl_out': get_today_history('lvl_out')
     })
 
 if __name__ == '__main__':
-    log("🚀 Servidor Web SCADA V3 Iniciado")
+    log("🚀 Servidor Web SCADA V2.0 Iniciado")
     socketio.run(app, host='0.0.0.0', port=5000)

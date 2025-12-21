@@ -1,12 +1,12 @@
 /*
  * -----------------------------------------------------------------------
- * SISTEMA INTEGRAL SCADA - WEMOS D1 R2 (VERSIÓN ROB TILLAART FIX)
+ * SISTEMA INTEGRAL SCADA - WEMOS D1 R2 (VERSIÓN ROB TILLAART RESTAURADA)
  * -----------------------------------------------------------------------
- * Correcciones:
- * 1. Implementación correcta librería Rob Tillaart MAX6675.
- * 2. Constructor actualizado a (CS, SO, SCK).
- * 3. Inicialización begin() agregada.
- * 4. Lectura por pasos status = read() -> getTemperature().
+ * Librería Específica: https://github.com/RobTillaart/MAX6675
+ * Lógica:
+ * 1. Constructor: (CS, SO, SCK).
+ * 2. Setup: thermocouple.begin().
+ * 3. Loop: int status = thermocouple.read() -> getTemperature().
  * -----------------------------------------------------------------------
  */
 
@@ -17,7 +17,7 @@
 #include <SPI.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BME280.h>
-#include <MAX6675.h>  // Librería de Rob Tillaart
+#include <MAX6675.h>  // Librería Rob Tillaart
 #include <Adafruit_ADS1X15.h>
 #include <HX711.h> 
 
@@ -29,15 +29,20 @@
 // ⚠️ ATENCIÓN: VERIFICA QUE ESTA IP SEA LA DE TU BROKER
 #define MQTT_SERVER "192.168.1.250" 
 #define MQTT_PORT 1883
-#define MQTT_CLIENT_ID "Wemos_SCADA_Debug"
+#define MQTT_CLIENT_ID "Wemos_UC_SO"
 
 // --- TEMPORIZADORES ---
 const unsigned long INTERVAL_METEO   = 15 * 60 * 1000; // 15 Minutos
-const unsigned long INTERVAL_PROCESS = 10000;          // 10 Segundos
+const unsigned long INTERVAL_PROCESS = 5000;          // 5 Segundos
 bool firstRun = true; // Bandera para primer envío
 
+// --- GEOMETRÍA DEL TANQUE (Para cálculo de volumen) ---
+// Ajustar estos valores según las medidas reales del tanque cilíndrico
+const float TANK_RADIUS_CM = 10.0;   // Radio interno del tanque
+const float SENSOR_HEIGHT_CM = 30.0; // Distancia desde el sensor hasta el fondo (Tanque vacío)
+
 // =========================================================
-// 2. MAPEO DE PINES (TU CONFIGURACIÓN)
+// 2. MAPEO DE PINES
 // =========================================================
 #define PIN_RELAY_IN    1   // TX
 #define PIN_RELAY_OUT   3   // RX
@@ -55,6 +60,15 @@ bool firstRun = true; // Bandera para primer envío
 #define HX_IN_DT        2   // D4
 #define HX_IN_SCK       0   // D3
 
+// A futuro, no hay pines suficientes
+/*
+#define US_OUT_TRIG      xx
+#define US_OUT_ECHO      xx
+
+#define HX_OUT_DT        xx
+#define HX_OUT_SCK       xx
+*/
+
 // =========================================================
 // 3. OBJETOS Y VARIABLES
 // =========================================================
@@ -68,18 +82,26 @@ Adafruit_ADS1115 ads;
 MAX6675 thermocouple(MAX_CS, MAX_SO, MAX_SCK);
 
 HX711 scaleIn;
+//HX711 scaleOut;
 
 struct State {
-  float temp_amb;
-  float hum_amb;
-  float pres_amb;
-  float radiation;
-  float temp_int;
-  float lvl_in_weight;
-  float lvl_in_dist;
+  float temp_amb;           // Se publica en environment
+  float hum_amb;            // Se publica en environment
+  float pres_amb;           // Se publica en environment
+
+  float radiation;          // Se publica en radiation
+  float temp_int;           // Se publica en temperature
+
+  float lvl_in_weight;      // Peso directo (kg)
+  float lvl_in_dist;        // Distancia directa (cm)
+  float lvl_in;             // VOLUMEN CALCULADO (ml) - Promedio fusionado
+
   float lvl_out_weight;
   float lvl_out_dist;   
-  float chamber_amount; 
+  float lvl_out;            // VOLUMEN CALCULADO (ml) - Promedio fusionado
+
+  float chamber_level;     // Se publica en chamber_level
+
   bool valve_in_state;
   bool valve_out_state;
   bool process_active;
@@ -91,7 +113,9 @@ unsigned long lastProcessTime = 0;
 // Constantes
 const float PYR_GAIN = 0.0078125;
 const float PYR_CAL = 70.9e-3;
-const float SCALE_CAL = 2280.0; 
+const float SCALE_CAL_IN = 2280.0;
+const float SCALE_CAL_OUT = 2280.0;
+const float PI_VAL = 3.14159265359;
 
 // Tópicos
 const char* TP_MEAS_ENV      = "measure/environment";   
@@ -120,17 +144,10 @@ void setup() {
     digitalWrite(PIN_RELAY_OUT, LOW);
   }
   
+  sysState.process_active = false;
+
   sysState.valve_in_state = false;
   sysState.valve_out_state = false;
-
-  pinMode(US_IN_TRIG, OUTPUT);
-  pinMode(US_IN_ECHO, INPUT);
-  digitalWrite(US_IN_TRIG, LOW);
-
-  sysState.process_active = false;
-  sysState.chamber_amount = -1.0;
-  sysState.lvl_out_weight = -1.0;
-  sysState.lvl_out_dist = -1.0;  
 
   initWiFi();
   initMQTT();
@@ -151,11 +168,11 @@ void loop() {
 
   unsigned long now = millis();
 
-  // --- TAREA AMBIENTAL ---
+  // --- TAREA DE REPORTE ---
   if ((now - lastMeteoTime > INTERVAL_METEO) || firstRun) {
     lastMeteoTime = now;
     
-    if (DEBUG_MODE) Serial.println(">>> EJECUTANDO TAREA AMBIENTAL <<<");
+    if (DEBUG_MODE) Serial.println(">>> EJECUTANDO TAREA DE REPORTE <<<");
     
     measureEnvironment();
     measureRadiation();
@@ -166,8 +183,13 @@ void loop() {
     if (!sysState.process_active) {
        measureInternalTemp();
        measureLevelIn();
+       measureLevelOut();
+       measureChamberLevel();
+
        pubInternalTemp();
        pubLevelIn();
+       pubLevelOut(); 
+       //pubChamberLevel();
     }
     
     if (firstRun) {
@@ -176,18 +198,23 @@ void loop() {
     }
   }
 
-  // --- TAREA PROCESO ---
+  // --- TAREA DE PROCESO ---
   if (sysState.process_active) {
     if (now - lastProcessTime > INTERVAL_PROCESS) {
       lastProcessTime = now;
-      if (DEBUG_MODE) Serial.println(">>> Ejecutando Tarea Proceso <<<");
+      if (DEBUG_MODE) Serial.println(">>> EJECUTANDO TAREA DE PROCESO <<<");
       
       measureInternalTemp();
-      measureLevelIn(); 
+      measureLevelIn();
+      measureLevelOut();
+      measureChamberLevel();
+
       runProcessLogic();
 
       pubInternalTemp();
       pubLevelIn();
+      pubLevelOut();
+      //pubChamberLevel();
     }
   }
 }
@@ -196,9 +223,11 @@ void loop() {
 // 6. LÓGICA DE PROCESO
 // =========================================================
 void runProcessLogic() {
-   if (sysState.process_active) {
-      // Placeholder
-   }
+  if (sysState.process_active) {
+    // Placeholder
+  } else{
+    return;
+  }
 }
 
 // =========================================================
@@ -246,14 +275,32 @@ void initSensors() {
     if (DEBUG_MODE) Serial.println("⚠️ ERROR: ADS1115 no encontrado");
   }
 
-  if (DEBUG_MODE) Serial.println("Iniciando MAX6675...");
+  if (DEBUG_MODE) Serial.println("Iniciando MAX6675 (Rob Tillaart)...");
   thermocouple.begin(); 
+
+  if (DEBUG_MODE) Serial.println("Iniciando Ultrasonico In...");
+  pinMode(US_IN_TRIG, OUTPUT);
+  pinMode(US_IN_ECHO, INPUT);
+  digitalWrite(US_IN_TRIG, LOW);
 
   // --- HX711 COMENTADO ---
   /*
-  if (DEBUG_MODE) Serial.println("Iniciando HX711...");
+  if (DEBUG_MODE) Serial.println("Iniciando HX711 In...");
   scaleIn.begin(HX_IN_DT, HX_IN_SCK);
-  scaleIn.set_scale(SCALE_CAL);
+  scaleIn.set_scale(SCALE_CAL_IN);
+  scaleIn.tare();
+  */
+
+  // A futuro, no implementado aun
+  /*
+  if (DEBUG_MODE) Serial.println("Iniciando Ultrasonico Out...");
+  pinMode(US_OUT_TRIG, OUTPUT);
+  pinMode(US_OUT_ECHO, INPUT);
+  digitalWrite(US_OUT_TRIG, LOW);
+
+  if (DEBUG_MODE) Serial.println("Iniciando HX711 Out...");
+  scaleIn.begin(HX_OUT_DT, HX_OUT_SCK);
+  scaleIn.set_scale(SCALE_CAL_OUT);
   scaleIn.tare();
   */
 }
@@ -269,7 +316,6 @@ void measureEnvironment() {
 }
 
 void measureRadiation() {
-  // LÓGICA COMENTADA
   /*
   long adc_acc = 0;
   for (int i = 0; i < 20; i++) {
@@ -280,22 +326,19 @@ void measureRadiation() {
   float voltage = avg * PYR_GAIN;
   sysState.radiation = (voltage < 0) ? 0 : (voltage / PYR_CAL);
   */
-  sysState.radiation = 0.0; // Placeholder
+  sysState.radiation = -1.0;
+  if (DEBUG_MODE) Serial.printf("Rad: %.2f\n", sysState.radiation);
 }
 
 void measureInternalTemp() {
-  // CORRECCIÓN: Librería Rob Tillaart
-  // 1. Leer estado
-  int status = thermocouple.read(); 
+  int status = thermocouple.read();
   
-  // 2. Obtener temperatura según estado
   if (status == STATUS_OK) {
     sysState.temp_int = thermocouple.getTemperature();
   } else {
-    sysState.temp_int = -1.0; // Error de lectura
+    sysState.temp_int = -1.0;
     if (DEBUG_MODE) {
-      Serial.print("MAX6675 Error: ");
-      Serial.println(status); // 4=Open, 128=No comms
+        Serial.print("MAX6675 Error: "); Serial.println(status);
     }
   }
   
@@ -303,28 +346,110 @@ void measureInternalTemp() {
 }
 
 void measureLevelIn() {
-  // ULTRASONIDO - Secuencia de disparo estándar
-  digitalWrite(US_IN_TRIG, LOW);
-  delayMicroseconds(2);
-  digitalWrite(US_IN_TRIG, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(US_IN_TRIG, LOW);
-  
-  // Lectura estándar (sin timeout explícito, usa default)
-  long duration = pulseIn(US_IN_ECHO, HIGH);
-  
-  // Cálculo
-  sysState.lvl_in_dist = duration * 0.034 / 2;
+  float vol_ultrasonico = -1.0;
+  float vol_peso = -1.0;
 
-  // Peso (COMENTADO)
+  // --- 1. MEDICIÓN ULTRASONIDO (Distancia) ---
+  digitalWrite(US_IN_TRIG, LOW); delayMicroseconds(2);
+  digitalWrite(US_IN_TRIG, HIGH); delayMicroseconds(10);
+  digitalWrite(US_IN_TRIG, LOW);
+  long dur = pulseIn(US_IN_ECHO, HIGH); // 30ms timeout
+  
+  if (dur == 0) {
+    sysState.lvl_in_dist = -1.0;
+  } else {
+    sysState.lvl_in_dist = dur * 0.034 / 2.0;
+    // CÁLCULO VOLUMEN (Cilindro)
+    // Altura de agua = Altura Sensor - Distancia Medida
+    float water_height = SENSOR_HEIGHT_CM - sysState.lvl_in_dist;
+    if (water_height < 0) water_height = 0;
+    
+    // Vol = Pi * r^2 * h
+    vol_ultrasonico = PI_VAL * (TANK_RADIUS_CM * TANK_RADIUS_CM) * water_height; 
+  }
+
+  // --- 2. MEDICIÓN HX711 (Peso) ---
   /*
   if (scaleIn.is_ready()) {
     sysState.lvl_in_weight = scaleIn.get_units(1);
+    // CÁLCULO VOLUMEN (Peso)
+    // Asumimos 1g = 1ml (Densidad agua aprox) -> 1kg = 1000ml
+    if (sysState.lvl_in_weight < 0) sysState.lvl_in_weight = 0; // Filtrar tara negativa
+    vol_peso = sysState.lvl_in_weight * 1000.0; 
   } else {
-    sysState.lvl_in_weight = -99.0;
+    sysState.lvl_in_weight = -1.0;
   }
   */
-  sysState.lvl_in_weight = -1.0; 
+  sysState.lvl_in_weight = -1.0; // Placeholder
+
+  // --- 3. FUSIÓN DE SENSORES (PROMEDIO) ---
+  if (vol_ultrasonico >= 0 && vol_peso >= 0) {
+    // Ambos sensores OK -> Promedio
+    sysState.lvl_in = (vol_ultrasonico + vol_peso) / 2.0;
+  } else if (vol_ultrasonico >= 0) {
+    // Solo ultrasonido OK
+    sysState.lvl_in = vol_ultrasonico;
+  } else if (vol_peso >= 0) {
+    // Solo peso OK
+    sysState.lvl_in = vol_peso;
+  } else {
+    // Ninguno OK
+    sysState.lvl_in = -1.0;
+  }
+  
+  if (DEBUG_MODE) Serial.printf("Lvl In: Dist=%.1fcm Peso=%.2fkg Vol=%.0fml\n", 
+                                sysState.lvl_in_dist, sysState.lvl_in_weight, sysState.lvl_in);
+}
+
+void measureLevelOut() {
+  float vol_ultrasonico = -1.0;
+  float vol_peso = -1.0;
+
+  // --- 1. MEDICIÓN ULTRASONIDO (Distancia) ---
+  /* digitalWrite(US_OUT_TRIG, LOW); delayMicroseconds(2);
+  digitalWrite(US_OUT_TRIG, HIGH); delayMicroseconds(10);
+  digitalWrite(US_OUT_TRIG, LOW);
+  long dur = pulseIn(US_OUT_ECHO, HIGH);
+  
+  if (dur == 0) {
+    sysState.lvl_out_dist = -1.0;
+  } else {
+    sysState.lvl_out_dist = dur * 0.034 / 2.0;
+    // CÁLCULO VOLUMEN
+    float water_height = SENSOR_HEIGHT_CM - sysState.lvl_out_dist;
+    if (water_height < 0) water_height = 0;
+    vol_ultrasonico = PI_VAL * (TANK_RADIUS_CM * TANK_RADIUS_CM) * water_height; 
+  }
+  */
+  sysState.lvl_out_dist = -1.0; // Placeholder
+
+  // --- 2. MEDICIÓN HX711 (Peso) ---
+  /*
+  if (scaleOut.is_ready()) {
+    sysState.lvl_out_weight = scaleOut.get_units(1);
+    if (sysState.lvl_out_weight < 0) sysState.lvl_out_weight = 0;
+    vol_peso = sysState.lvl_out_weight * 1000.0; 
+  } else {
+    sysState.lvl_out_weight = -1.0;
+  }
+  */
+  sysState.lvl_out_weight = -1.0; // Placeholder
+
+  // --- 3. FUSIÓN DE SENSORES (PROMEDIO) ---
+  if (vol_ultrasonico >= 0 && vol_peso >= 0) {
+    sysState.lvl_out = (vol_ultrasonico + vol_peso) / 2.0;
+  } else if (vol_ultrasonico >= 0) {
+    sysState.lvl_out = vol_ultrasonico;
+  } else if (vol_peso >= 0) {
+    sysState.lvl_out = vol_peso;
+  } else {
+    sysState.lvl_out = -1.0;
+  }
+}
+
+void measureChamberLevel(){
+  //place holder
+  sysState.chamber_level = -1.0;
 }
 
 // =========================================================
@@ -349,9 +474,23 @@ void pubInternalTemp() {
 }
 
 void pubLevelIn() {
-  char msg[30];
-  snprintf(msg, sizeof(msg), "%.2f,%.2f", sysState.lvl_in_weight, sysState.lvl_in_dist);
+  char msg[50];
+  // Formato CSV extendido: Peso(kg), Distancia(cm), Volumen(ml)
+  snprintf(msg, sizeof(msg), "%.2f,%.2f,%.0f", sysState.lvl_in_weight, sysState.lvl_in_dist, sysState.lvl_in);
   mqttClient.publish(TP_MEAS_LVL_IN, msg);
+}
+
+void pubLevelOut() {
+  char msg[50];
+  // Formato CSV extendido: Peso(kg), Distancia(cm), Volumen(ml)
+  snprintf(msg, sizeof(msg), "%.2f,%.2f,%.0f", sysState.lvl_out_weight, sysState.lvl_out_dist, sysState.lvl_out);
+  mqttClient.publish(TP_MEAS_LVL_OUT, msg);
+}
+
+void pubChamberLevel() {
+  char msg[15];
+  snprintf(msg, sizeof(msg), "%.3f", sysState.chamber_level);
+  mqttClient.publish(TP_MEAS_CHAMBER, msg);
 }
 
 // =========================================================
