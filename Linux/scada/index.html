@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Desalinizador Solar</title>
+    <title>Desalinizador Solar ANII</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
@@ -51,7 +51,7 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
         /* --- LOGIN --- */
-        #login-screen { max-width: 400px; margin: 50px auto; padding: 40px; background: white; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        .login-screen { max-width: 400px; margin: 50px auto; padding: 40px; background: white; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
         .input-group { margin-bottom: 15px; text-align: left; }
         .input-group label { display: block; margin-bottom: 5px; color: #7f8c8d; }
         .input-group input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
@@ -71,11 +71,28 @@
         .mode-indicator { font-size: 0.9rem; margin-top: 5px; font-weight: bold; }
         .mode-auto { color: #3498db; }
         .mode-manual { color: #e67e22; }
-
         .status-badge { margin-top: 10px; padding: 5px 15px; border-radius: 20px; font-weight: bold; font-size: 0.9rem; display: inline-block; color: white; transition: background 0.3s; }
         .status-open { background-color: #2ecc71; }
         .status-closed { background-color: #e74c3c; }
         .status-unknown { background-color: #95a5a6; }
+
+        /* --- FILE MANAGER UI --- */
+        .file-browser { max-width: 1000px; margin: 20px auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); text-align: left; }
+        .browser-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        .current-path { font-family: monospace; font-size: 1.1rem; color: #555; background: #f0f2f5; padding: 5px 10px; border-radius: 4px; }
+        .btn-back { background: #95a5a6; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; }
+        .btn-back:hover { background: #7f8c8d; }
+        
+        .file-table { width: 100%; border-collapse: collapse; }
+        .file-table th { text-align: left; padding: 10px; border-bottom: 2px solid #eee; color: #7f8c8d; }
+        .file-table td { padding: 12px 10px; border-bottom: 1px solid #f9f9f9; }
+        .file-table tr:hover { background-color: #f8f9fa; }
+        .file-icon { font-size: 1.2rem; margin-right: 10px; }
+        .file-name { font-weight: 500; cursor: pointer; color: #2c3e50; }
+        .file-name:hover { color: #3498db; }
+        .btn-download { background: #3498db; color: white; text-decoration: none; padding: 5px 15px; border-radius: 4px; font-size: 0.9rem; }
+        .btn-download:hover { background: #2980b9; }
+
     </style>
 </head>
 <body>
@@ -84,27 +101,24 @@
         <button class="closebtn" onclick="closeNav()">&times;</button>
         <div class="sidebar-title">Menú</div>
         <a href="#" onclick="showView('monitor')">📊 Monitoreo Real-Time</a>
-        <a href="#" onclick="showView('control')">⚙️ Control de Proceso</a>
-        <a href="#" onclick="closeNav()" style="margin-top: 50px; color: #e74c3c;">❌ Cerrar Menú</a>
+        <a href="#" onclick="showView('control')">⚙️ Control del Proceso</a>
+        <a href="#" onclick="showView('reports')">🗂️ Reporte Histórico</a>
+        <a href="#" onclick="closeNav()" style="margin-top: 50px; color: #e74c3c;">❌ Cerrar</a>
     </div>
 
     <div class="header">
         <div class="header-left"><img src="/static/utec.png" alt="UTEC" class="logo"></div>
-        <div class="header-center"><img src="/static/meca.png" alt="Mecatrónica" class="icon-meca"><h1>Proyecto Desalinizador Solar</h1><p>Monitoreo en Tiempo Real y Telecontrol V2.0</p></div>
+        <div class="header-center"><img src="/static/meca.png" alt="Mecatrónica" class="icon-meca"><h1>Proyecto Desalinizador Solar</h1><p>Monitoreo en Tiempo Real y Control del proceso V3.0</p></div>
         <div class="header-right"><img src="/static/anii.png" alt="ANII" class="logo"><button class="menu-btn" onclick="openNav()">☰</button></div>
     </div>
 
-    <!-- VISTA MONITOREO (Read-Only) -->
+    <!-- VISTA MONITOREO -->
     <div id="view-monitor" class="view-section view-active">
         <div class="grid-container">
             <div class="section-title">🏭 Variables de Proceso</div>
-            <!-- Nivel IN -->
             <div class="card lvl"><h2>📥 Nivel de Entrada de Agua</h2><div class="valor"><span id="v-lvl_in">{{ datos.lvl_in }}</span> <span class="unidad">ml</span></div><div class="chart-container"><canvas id="chart-lvl_in"></canvas></div></div>
-            <!-- Nivel Cámara -->
             <div class="card lvl"><h2>⚖️ Cantidad de Agua en Cámara</h2><div class="valor"><span id="v-chamber_level">{{ datos.chamber_level }}</span> <span class="unidad">ml</span></div><div class="chart-container"><canvas id="chart-chamber_level"></canvas></div></div>
-            <!-- Temp Cámara -->
             <div class="card tmp"><h2>🌡️ Temp. en Cámara</h2><div class="valor"><span id="v-int_temp">{{ datos.int_temp }}</span> <span class="unidad">°C</span></div><div class="chart-container"><canvas id="chart-int_temp"></canvas></div></div>
-            <!-- Nivel OUT -->
             <div class="card lvl"><h2>📤 Nivel de Salida de Agua</h2><div class="valor"><span id="v-lvl_out">{{ datos.lvl_out }}</span> <span class="unidad">ml</span></div><div class="chart-container"><canvas id="chart-lvl_out"></canvas></div></div>
 
             <div class="section-title">🌤️ Condiciones Ambientales</div>
@@ -115,20 +129,18 @@
         </div>
     </div>
 
-    <!-- VISTA CONTROL (Protegida) -->
+    <!-- VISTA CONTROL -->
     <div id="view-control" class="view-section">
-        
-        <!-- LOGIN -->
-        <div id="login-screen">
-            <h2>🔐 Acceso Restringido</h2>
-            <div class="input-group"><label>Usuario</label><input type="text" id="login-user"></div>
-            <div class="input-group"><label>Contraseña</label><input type="password" id="login-pass"></div>
-            <button class="btn-login" onclick="checkLogin()">Ingresar</button>
-            <p id="login-error" class="error-msg">Error de credenciales</p>
+        <!-- Reutilizamos la misma clase para login -->
+        <div id="login-control" class="login-screen">
+            <h2>🔐 Acceso Control</h2>
+            <div class="input-group"><label>Usuario</label><input type="text" id="user-control"></div>
+            <div class="input-group"><label>Contraseña</label><input type="password" id="pass-control"></div>
+            <button class="btn-login" onclick="doLogin('control')">Ingresar</button>
+            <p id="error-control" class="error-msg">Error de credenciales</p>
         </div>
 
-        <!-- PANEL DE CONTROL -->
-        <div id="control-dashboard" style="display: none;">
+        <div id="content-control" style="display: none;">
             <div class="grid-container">
                 <div class="section-title">🏭 Estado del Proceso</div>
                 <div class="card lvl"><h2>📥 Nivel de Entrada de Agua</h2><div class="valor"><span id="c-lvl_in">--</span> <span class="unidad">ml</span></div></div>
@@ -137,46 +149,39 @@
                 <div class="card lvl"><h2>📤 Nivel de Salida de Agua</h2><div class="valor"><span id="c-lvl_out">--</span> <span class="unidad">ml</span></div></div>
 
                 <div class="section-title">🎛️ Centro de Comando</div>
+                <div class="card ctrl"><h2>🤖 Modo</h2><div class="mode-indicator" id="mode-text">AUTO</div><div class="ctrl-btn-group"><button class="btn-ctrl btn-blue btn-active" id="btn-auto" onclick="setMode('auto')">AUTO</button><button class="btn-ctrl btn-blue" id="btn-manual" onclick="setMode('manual')">MANUAL</button></div></div>
+                <div class="card ctrl"><h2>🚀 Proceso</h2><div class="status-badge status-unknown" id="status-process">Estado: --</div><div class="ctrl-btn-group"><button class="btn-ctrl btn-green" onclick="sendCommand('control/process', 1)">START</button><button class="btn-ctrl btn-red" onclick="sendCommand('control/process', 0)">STOP</button></div></div>
+                <div class="card ctrl"><h2>🚰 Válvula Entrada</h2><div class="status-badge status-closed" id="status-in_valve">Estado: CERRADA</div><div class="ctrl-btn-group"><button class="btn-ctrl btn-green valve-btn" onclick="sendCommand('control/in_valve', 1, this)">ABRIR</button><button class="btn-ctrl btn-red valve-btn" onclick="sendCommand('control/in_valve', 0, this)">CERRAR</button></div></div>
+                <div class="card ctrl"><h2>🚰 Válvula Salida</h2><div class="status-badge status-closed" id="status-out_valve">Estado: CERRADA</div><div class="ctrl-btn-group"><button class="btn-ctrl btn-green valve-btn" onclick="sendCommand('control/out_valve', 1, this)">ABRIR</button><button class="btn-ctrl btn-red valve-btn" onclick="sendCommand('control/out_valve', 0, this)">CERRAR</button></div></div>
+            </div>
+        </div>
+    </div>
 
-                <!-- 1. MODO -->
-                <div class="card ctrl">
-                    <h2>🤖 Modo</h2>
-                    <div class="mode-indicator" id="mode-text">AUTO</div>
-                    <div class="ctrl-btn-group">
-                        <button class="btn-ctrl btn-blue btn-active" id="btn-auto" onclick="setMode('auto')">AUTO</button>
-                        <button class="btn-ctrl btn-blue" id="btn-manual" onclick="setMode('manual')">MANUAL</button>
+    <!-- VISTA REPORTES (NUEVA) -->
+    <div id="view-reports" class="view-section">
+        <div id="login-reports" class="login-screen">
+            <h2>🔐 Acceso Reportes</h2>
+            <div class="input-group"><label>Usuario</label><input type="text" id="user-reports"></div>
+            <div class="input-group"><label>Contraseña</label><input type="password" id="pass-reports"></div>
+            <button class="btn-login" onclick="doLogin('reports')">Ingresar</button>
+            <p id="error-reports" class="error-msg">Error de credenciales</p>
+        </div>
+
+        <div id="content-reports" style="display: none;">
+            <div class="file-browser">
+                <div class="browser-header">
+                    <h3>🗂️ Explorador de Archivos</h3>
+                    <div>
+                        <span id="current-path-display" class="current-path">/</span>
+                        <button class="btn-back" onclick="navigateUp()">⬆️ Subir Nivel</button>
                     </div>
                 </div>
-
-                <!-- 2. PROCESO -->
-                <div class="card ctrl">
-                    <h2>🚀 Proceso General</h2>
-                    <div class="status-badge status-unknown" id="status-process">Estado: --</div>
-                    <div class="ctrl-btn-group">
-                        <button class="btn-ctrl btn-green" onclick="sendCommand('control/process', 1)">START</button>
-                        <button class="btn-ctrl btn-red" onclick="sendCommand('control/process', 0)">STOP</button>
-                    </div>
-                </div>
-
-                <!-- 3. VÁLVULA ENTRADA -->
-                <div class="card ctrl">
-                    <h2>🚰 Válvula Entrada</h2>
-                    <div class="status-badge status-closed" id="status-in_valve">Estado: CERRADA</div>
-                    <div class="ctrl-btn-group">
-                        <button class="btn-ctrl btn-green valve-btn" onclick="sendCommand('control/in_valve', 1, this)">ABRIR</button>
-                        <button class="btn-ctrl btn-red valve-btn" onclick="sendCommand('control/in_valve', 0, this)">CERRAR</button>
-                    </div>
-                </div>
-
-                <!-- 4. VÁLVULA SALIDA -->
-                <div class="card ctrl">
-                    <h2>🚰 Válvula Salida</h2>
-                    <div class="status-badge status-closed" id="status-out_valve">Estado: CERRADA</div>
-                    <div class="ctrl-btn-group">
-                        <button class="btn-ctrl btn-green valve-btn" onclick="sendCommand('control/out_valve', 1, this)">ABRIR</button>
-                        <button class="btn-ctrl btn-red valve-btn" onclick="sendCommand('control/out_valve', 0, this)">CERRAR</button>
-                    </div>
-                </div>
+                <table class="file-table">
+                    <thead><tr><th>Nombre</th><th>Tamaño</th><th>Acción</th></tr></thead>
+                    <tbody id="file-list-body">
+                        <!-- Se llena dinámicamente -->
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
@@ -184,44 +189,116 @@
     <script>
         var socket = io();
         var isManualMode = false;
+        var isLoggedIn = false; // Estado global de login
+        var currentPath = "";   // Ruta actual del explorador
 
         function openNav() { document.getElementById("mySidebar").style.width = "280px"; }
         function closeNav() { document.getElementById("mySidebar").style.width = "0"; }
+        
         function showView(viewName) {
             document.querySelectorAll('.view-section').forEach(el => el.classList.remove('view-active'));
             document.getElementById('view-' + viewName).classList.add('view-active');
+            
+            // Si vamos a reportes y ya estamos logueados, cargamos archivos
+            if(viewName === 'reports' && isLoggedIn) {
+                loadFiles("");
+            }
             closeNav();
         }
 
-        function checkLogin() {
-            var u = document.getElementById('login-user').value;
-            var p = document.getElementById('login-pass').value;
+        // --- SISTEMA LOGIN UNIFICADO ---
+        function doLogin(section) {
+            var u = document.getElementById('user-' + section).value;
+            var p = document.getElementById('pass-' + section).value;
+            
             if(u === 'rodrigo.sosa' && p === 'proyecto-anii') {
-                document.getElementById('login-screen').style.display = 'none';
-                document.getElementById('control-dashboard').style.display = 'block';
-                setMode('auto'); // Default al login
-            } else { document.getElementById('login-error').style.display = 'block'; }
+                isLoggedIn = true;
+                // Desbloquear ambas vistas
+                document.getElementById('login-control').style.display = 'none';
+                document.getElementById('content-control').style.display = 'block';
+                
+                document.getElementById('login-reports').style.display = 'none';
+                document.getElementById('content-reports').style.display = 'block';
+                
+                // Si estamos en reportes, cargar inicial
+                if(section === 'reports') loadFiles("");
+                // Si estamos en control, init modo
+                if(section === 'control') setMode('auto');
+            } else {
+                document.getElementById('error-' + section).style.display = 'block';
+            }
         }
 
+        // --- GESTOR DE ARCHIVOS ---
+        function formatSize(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function navigateUp() {
+            if(currentPath === "") return;
+            // Eliminar último segmento
+            var parts = currentPath.split('/');
+            parts.pop();
+            loadFiles(parts.join('/'));
+        }
+
+        function loadFiles(path) {
+            currentPath = path;
+            document.getElementById('current-path-display').innerText = "/" + path;
+            
+            fetch('/api/files?path=' + path)
+                .then(res => res.json())
+                .then(files => {
+                    const tbody = document.getElementById('file-list-body');
+                    tbody.innerHTML = "";
+                    
+                    if(files.error) {
+                        alert("Error: " + files.error);
+                        return;
+                    }
+
+                    files.forEach(f => {
+                        const tr = document.createElement('tr');
+                        
+                        let icon = f.is_dir ? "📂" : "📄";
+                        let actionBtn = "";
+                        let onClickName = "";
+
+                        if(f.is_dir) {
+                            actionBtn = `<button class="btn-back" style="background:#2ecc71" onclick="loadFiles('${f.path}')">Abrir</button>`;
+                            onClickName = `onclick="loadFiles('${f.path}')"`;
+                        } else {
+                            actionBtn = `<a href="/download/${f.path}" class="btn-download" target="_blank">Descargar</a>`;
+                        }
+
+                        tr.innerHTML = `
+                            <td><span class="file-icon">${icon}</span> <span class="file-name" ${onClickName}>${f.name}</span></td>
+                            <td>${f.is_dir ? "-" : formatSize(f.size)}</td>
+                            <td>${actionBtn}</td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                });
+        }
+
+        // --- CONTROL Y GRÁFICOS (Igual que antes) ---
         function setMode(mode) {
             isManualMode = (mode === 'manual');
             document.getElementById('btn-auto').className = isManualMode ? 'btn-ctrl btn-blue' : 'btn-ctrl btn-blue btn-active';
             document.getElementById('btn-manual').className = isManualMode ? 'btn-ctrl btn-blue btn-active' : 'btn-ctrl btn-blue';
-            var textEl = document.getElementById('mode-text');
-            textEl.innerText = isManualMode ? "MANUAL (Control habilitado)" : "AUTO (Control bloqueado)";
-            textEl.className = "mode-indicator " + (isManualMode ? "mode-manual" : "mode-auto");
-            
-            // Habilitar/Deshabilitar botones de válvulas
+            document.getElementById('mode-text').innerText = isManualMode ? "MANUAL (Habilitado)" : "AUTO (Bloqueado)";
+            document.getElementById('mode-text').className = "mode-indicator " + (isManualMode ? "mode-manual" : "mode-auto");
             document.querySelectorAll('.valve-btn').forEach(btn => {
                 if(isManualMode) btn.classList.remove('btn-disabled'); else btn.classList.add('btn-disabled');
             });
         }
 
         function sendCommand(topic, payload, btnElement) {
-            if(btnElement) {
-                btnElement.style.transform = "scale(0.95)";
-                setTimeout(() => btnElement.style.transform = "scale(1)", 150);
-            }
+            if(btnElement) { btnElement.style.transform = "scale(0.95)"; setTimeout(() => btnElement.style.transform = "scale(1)", 150); }
             socket.emit('control_cmd', {topic: topic, payload: payload});
         }
 
@@ -241,57 +318,26 @@
         const commonOptions = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { beginAtZero: false } }, elements: { point: { radius: 0 } }, animation: false };
         function createChart(id, color) { return new Chart(document.getElementById(id), { type: 'line', data: { labels: [], datasets: [{ data: [], borderColor: color, backgroundColor: color + '33', borderWidth: 2, fill: true, tension: 0.4 }] }, options: commonOptions }); }
 
-        const charts = {
-            lvl_in:        createChart('chart-lvl_in', '#3498db'),
-            chamber_level: createChart('chart-chamber_level', '#9b59b6'),
-            int_temp:      createChart('chart-int_temp', '#e74c3c'),
-            lvl_out:       createChart('chart-lvl_out', '#3498db'),
-            radiation:     createChart('chart-radiation', '#e67e22'),
-            env_temp:      createChart('chart-env_temp', '#2ecc71'),
-            env_hum:       createChart('chart-env_hum', '#2ecc71'),
-            env_pres:      createChart('chart-env_pres', '#2ecc71')
-        };
+        const charts = { lvl_in: createChart('chart-lvl_in', '#3498db'), chamber_level: createChart('chart-chamber_level', '#9b59b6'), int_temp: createChart('chart-int_temp', '#e74c3c'), lvl_out: createChart('chart-lvl_out', '#3498db'), radiation: createChart('chart-radiation', '#e67e22'), env_temp: createChart('chart-env_temp', '#2ecc71'), env_hum: createChart('chart-env_hum', '#2ecc71'), env_pres: createChart('chart-env_pres', '#2ecc71') };
 
-        fetch('/api/history').then(res => res.json()).then(data => {
-            Object.keys(data).forEach(key => {
-                if (charts[key] && data[key]) {
-                    data[key].forEach(p => {
-                        charts[key].data.labels.push(p.time);
-                        charts[key].data.datasets[0].data.push(p.value);
-                    });
-                    charts[key].update();
-                }
-            });
-        });
+        fetch('/api/history').then(res => res.json()).then(data => { Object.keys(data).forEach(key => { if (charts[key] && data[key]) { data[key].forEach(p => { charts[key].data.labels.push(p.time); charts[key].data.datasets[0].data.push(p.value); }); charts[key].update(); } }); });
 
         socket.on('nuevo_dato', function(msg) {
-            // Actualizar Texto
             var el = document.getElementById('v-' + msg.sensor);
             if (el) { el.innerText = msg.valor; el.style.color = "#27ae60"; setTimeout(() => { el.style.color = "#2c3e50"; }, 500); }
-            
             var elCtrl = document.getElementById('c-' + msg.sensor);
             if (elCtrl) { elCtrl.innerText = msg.valor; }
-
-            // Actualizar Gráfico
             if (charts[msg.sensor]) {
                 const now = new Date();
                 const timeStr = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0') + ':' + now.getSeconds().toString().padStart(2,'0');
                 charts[msg.sensor].data.labels.push(timeStr);
                 charts[msg.sensor].data.datasets[0].data.push(parseFloat(msg.valor));
-                if (charts[msg.sensor].data.labels.length > 200) { 
-                    charts[msg.sensor].data.labels.shift(); 
-                    charts[msg.sensor].data.datasets[0].data.shift(); 
-                }
+                if (charts[msg.sensor].data.labels.length > 200) { charts[msg.sensor].data.labels.shift(); charts[msg.sensor].data.datasets[0].data.shift(); }
                 charts[msg.sensor].update();
             }
-
-            // Feedback Estados
-            if (msg.sensor === 'in_valve' || msg.sensor === 'out_valve' || msg.sensor === 'process') {
-                updateStatusUI(msg.sensor, msg.valor);
-            }
+            if (msg.sensor === 'in_valve' || msg.sensor === 'out_valve' || msg.sensor === 'process') { updateStatusUI(msg.sensor, msg.valor); }
         });
         
-        // Init Estados
         updateStatusUI('in_valve', '{{ datos.in_valve }}');
         updateStatusUI('out_valve', '{{ datos.out_valve }}');
         updateStatusUI('process', '{{ datos.process }}');

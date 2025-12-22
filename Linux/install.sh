@@ -59,6 +59,7 @@ sudo chmod 777 /home/utils
 
 sudo mv dev/switch-monitor.py /home/utils
 sudo mv dev/setup-headless.py /home/utils
+sudo mv dev/awake-keeper.py /home/utils
 
 sudo chmod 777 net.sh
 sudo chmod 777 scada.sh
@@ -230,6 +231,8 @@ sudo systemctl restart mosquitto
 
 #Se puede comprobar con:
 #netstat -an | grep tcp
+
+sudo python3 /home/utils/awake-keeper.py
 
 ##############################################################
 ####                Finaliza la ejecucíon                 ####
