@@ -150,7 +150,7 @@ text(t_start + minutes(30), 0.8, sprintf('Duración Total: %.1f min', total_on_p
 
 
 % -------------------------------------------------------------------------
-% 5. GUARDADO AUTOMÁTICO
+% 5. GUARDADO AUTOMÁTICO DE IMAGEN
 % -------------------------------------------------------------------------
 img_name = [target_date, '_analisis_control.png'];
 full_save_path = fullfile(script_path, img_name);
@@ -163,7 +163,35 @@ catch err
 end
 
 % -------------------------------------------------------------------------
-% 6. RESUMEN EN CONSOLA
+% 6. GENERACIÓN DE REPORTE DE TEXTO (.txt)
+% -------------------------------------------------------------------------
+txt_name = [target_date, '_resumen_control.txt'];
+full_txt_path = fullfile(script_path, txt_name);
+
+fid = fopen(full_txt_path, 'w');
+if fid ~= -1
+    % Usamos \r\n para compatibilidad total
+    fprintf(fid, '========================================\r\n');
+    fprintf(fid, ' RESUMEN ACTIVIDAD CONTROL: %s\r\n', target_date);
+    fprintf(fid, '========================================\r\n\r\n');
+    
+    fprintf(fid, '🚰 VÁLVULA ENTRADA:\r\n');
+    fprintf(fid, '   Tiempo Activo: %.2f minutos\r\n\r\n', total_on_in);
+    
+    fprintf(fid, '🚰 VÁLVULA SALIDA:\r\n');
+    fprintf(fid, '   Tiempo Activo: %.2f minutos\r\n\r\n', total_on_out);
+    
+    fprintf(fid, '🚀 PROCESO GENERAL:\r\n');
+    fprintf(fid, '   Tiempo Activo: %.2f minutos\r\n', total_on_proc);
+    
+    fclose(fid);
+    fprintf('Reporte de texto guardado: %s\n', full_txt_path);
+else
+    warning('No se pudo crear el archivo de texto.');
+end
+
+% -------------------------------------------------------------------------
+% 7. RESUMEN EN CONSOLA (Opcional)
 % -------------------------------------------------------------------------
 fprintf('\n=== RESUMEN DE TIEMPOS DE ACTIVIDAD ===\n');
 fprintf('Válvula Entrada: %.2f minutos\n', total_on_in);

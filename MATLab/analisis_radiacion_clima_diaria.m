@@ -163,7 +163,7 @@ fprintf('-----------------------\n');
 % -------------------------------------------------------------------------
 % 6. GUARDAR IMAGEN AUTOMÁTICAMENTE
 % -------------------------------------------------------------------------
-img_name = [target_date, '_analisis_cruzado.png'];
+img_name = [target_date, '_analisis_rad_clima.png'];
 full_save_path = fullfile(script_path, img_name);
 
 try

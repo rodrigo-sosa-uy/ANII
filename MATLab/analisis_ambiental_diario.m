@@ -5,7 +5,7 @@ clc; clear; close all;
 
 % --- CONFIGURACIÓN DE USUARIO ---
 % Define la fecha a analizar
-target_date = '2025_12_20'; 
+target_date = '2025_12_22'; 
 
 % -------------------------------------------------------------------------
 % 1. Configuración de Rutas
@@ -140,7 +140,7 @@ fprintf('========================================\n');
 
 
 % -------------------------------------------------------------------------
-% 6. GUARDADO AUTOMÁTICO
+% 6. GUARDADO AUTOMÁTICO DE IMAGEN
 % -------------------------------------------------------------------------
 img_name = [target_date, '_analisis_ambiental.png'];
 full_save_path = fullfile(script_path, img_name);
@@ -150,4 +150,39 @@ try
     fprintf('Imagen guardada automáticamente en: %s\n', full_save_path);
 catch err
     warning('No se pudo guardar la imagen: %s', err.message);
+end
+
+% -------------------------------------------------------------------------
+% 7. GENERACIÓN DE REPORTE DE TEXTO (.txt)
+% -------------------------------------------------------------------------
+txt_name = [target_date, '_resumen_ambiental.txt'];
+full_txt_path = fullfile(script_path, txt_name);
+
+fid = fopen(full_txt_path, 'w');
+if fid ~= -1
+    % Usamos \r\n para compatibilidad total con Windows Notepad
+    fprintf(fid, '========================================\r\n');
+    fprintf(fid, ' RESUMEN AMBIENTAL: %s\r\n', target_date);
+    fprintf(fid, '========================================\r\n\r\n');
+    
+    fprintf(fid, '🌡️ TEMPERATURA (°C):\r\n');
+    fprintf(fid, '   Máxima:     %.2f\r\n', max(val_temp));
+    fprintf(fid, '   Mínima:     %.2f\r\n', min(val_temp));
+    fprintf(fid, '   Promedio:   %.2f\r\n', mean(val_temp));
+    fprintf(fid, '   Desviación: %.3f\r\n\r\n', std(val_temp));
+    
+    fprintf(fid, '💧 HUMEDAD (%%):\r\n');
+    fprintf(fid, '   Máxima:     %.2f\r\n', max(val_hum));
+    fprintf(fid, '   Mínima:     %.2f\r\n', min(val_hum));
+    fprintf(fid, '   Promedio:   %.2f\r\n\r\n', mean(val_hum));
+    
+    fprintf(fid, '⏲️ PRESIÓN (hPa):\r\n');
+    fprintf(fid, '   Máxima:     %.2f\r\n', max(val_pres));
+    fprintf(fid, '   Mínima:     %.2f\r\n', min(val_pres));
+    fprintf(fid, '   Promedio:   %.2f\r\n', mean(val_pres));
+    
+    fclose(fid);
+    fprintf('Reporte de texto guardado: %s\n', txt_name);
+else
+    warning('No se pudo crear el archivo de texto.');
 end

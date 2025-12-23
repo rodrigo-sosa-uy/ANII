@@ -4,7 +4,7 @@
 clc; clear; close all;
 
 % --- CONFIGURACIÓN DE USUARIO ---
-target_date = '2025_12_20'; 
+target_date = '2025_12_22'; 
 
 % -------------------------------------------------------------------------
 % 1. Configuración de Rutas
@@ -139,7 +139,7 @@ fprintf('    Lecturas con Error: %d\n', sum(isnan(plot_vol)));
 fprintf('========================================\n');
 
 % -------------------------------------------------------------------------
-% 6. GUARDADO AUTOMÁTICO
+% 6. GUARDADO AUTOMÁTICO DE IMAGEN
 % -------------------------------------------------------------------------
 img_name = [target_date, '_analisis_nivel_in.png'];
 full_save_path = fullfile(script_path, img_name);
@@ -149,4 +149,36 @@ try
     fprintf('Imagen guardada automáticamente en: %s\n', full_save_path);
 catch err
     warning('No se pudo guardar la imagen: %s', err.message);
+end
+
+% -------------------------------------------------------------------------
+% 7. GENERACIÓN DE REPORTE DE TEXTO (.txt)
+% -------------------------------------------------------------------------
+txt_name = [target_date, '_resumen_nivel_in.txt'];
+full_txt_path = fullfile(script_path, txt_name);
+
+fid = fopen(full_txt_path, 'w');
+if fid ~= -1
+    % Usamos \r\n para compatibilidad total
+    fprintf(fid, '========================================\r\n');
+    fprintf(fid, ' RESUMEN NIVEL ENTRADA: %s\r\n', target_date);
+    fprintf(fid, '========================================\r\n\r\n');
+    
+    fprintf(fid, '⚖️ PESO (kg):\r\n');
+    fprintf(fid, '   Máximo:   %.2f\r\n', max(plot_weight));
+    fprintf(fid, '   Promedio: %.2f\r\n\r\n', mean(plot_weight, 'omitnan'));
+    
+    fprintf(fid, '📏 DISTANCIA (cm):\r\n');
+    fprintf(fid, '   Mínimo (Más Lleno): %.2f\r\n', min(plot_dist));
+    fprintf(fid, '   Promedio:           %.2f\r\n\r\n', mean(plot_dist, 'omitnan'));
+    
+    fprintf(fid, '💧 VOLUMEN (ml):\r\n');
+    fprintf(fid, '   Máximo:   %.0f\r\n', max(plot_vol));
+    fprintf(fid, '   Promedio: %.0f\r\n', avg_vol);
+    fprintf(fid, '   Lecturas con Error: %d\r\n', sum(isnan(plot_vol)));
+    
+    fclose(fid);
+    fprintf('Reporte de texto guardado: %s\n', full_txt_path);
+else
+    warning('No se pudo crear el archivo de texto.');
 end

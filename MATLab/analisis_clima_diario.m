@@ -104,7 +104,7 @@ xlim([t_start, t_end]); % <--- FORZAMOS EJE DE 24 HORAS
 legend({'Nubosidad', 'Presión'}, 'Location', 'best');
 
 % --- GUARDAR IMAGEN 1 ---
-img_name1 = 'resumen_clima_meteograma.png';
+img_name1 = [target_date, '_analisis_clima_meteograma.png'];
 full_save_path1 = fullfile(script_path, img_name1);
 saveas(fig1, full_save_path1);
 fprintf('Imagen guardada: %s\n', full_save_path1);
@@ -120,7 +120,7 @@ h = pie(cats);
 title(['Condiciones Predominantes - ', strrep(target_date, '_', '-')]);
 
 % --- GUARDAR IMAGEN 2 ---
-img_name2 = 'resumen_clima_distribucion.png';
+img_name2 = [target_date, '_analisis_clima_distribucion.png'];
 full_save_path2 = fullfile(script_path, img_name2);
 saveas(fig2, full_save_path2);
 fprintf('Imagen guardada: %s\n', full_save_path2);
@@ -151,7 +151,7 @@ else
 end
 
 % Nombre del archivo de texto
-txt_filename = ['resumen_clima_', target_date, '.txt'];
+txt_filename = [target_date, '_resumen_clima.txt'];
 full_txt_path = fullfile(script_path, txt_filename);
 
 % Escritura del archivo

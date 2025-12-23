@@ -1,18 +1,13 @@
 % =========================================================================
-% SCRIPT PARA GRAFICAR DATOS DE RADIACIÓN DESDE CSV (CON AUTOGUARDADO)
+% SCRIPT ESTANDARIZADO: RADIACIÓN SOLAR DIARIA
 % =========================================================================
 clc; clear; close all;
 
-% --- CONFIGURACIÓN DE USUARIO ---
-% Define la fecha que quieres analizar (Formato: YYYY_MM_DD)
-target_date = '2025_11_27';
+% --- CONFIGURACIÓN ---
+target_date = '2025_12_22'; 
 
-% -------------------------------------------------------------------------
-
-% 1. Construcción de la ruta del archivo dinámicamente
-% Obtenemos la ruta de la carpeta donde está guardado este script
+% 1. Rutas
 if isempty(mfilename)
-    % Si el código se ejecuta bloque a bloque sin guardar el archivo, usa pwd
     script_path = pwd;
 else
     script_path = fileparts(mfilename('fullpath'));
@@ -20,80 +15,66 @@ end
 
 filename = [target_date, '_radiation.csv'];
 full_path = fullfile(script_path, filename);
+fprintf('Procesando: %s\n', filename);
 
-fprintf('Buscando archivo en: %s\n', full_path);
+if ~isfile(full_path), error('Archivo no encontrado.'); end
 
-% 2. Verificación de existencia
-if ~isfile(full_path)
-    error('El archivo no se encuentra en la misma carpeta que el script.\nBusqué en: %s', full_path);
-end
-
-% 3. Lectura de los datos
+% 2. Carga
 opts = detectImportOptions(full_path);
-opts.VariableNamingRule = 'preserve'; % Para mantener caracteres especiales en headers
+opts.VariableNamingRule = 'preserve';
 data = readtable(full_path, opts);
 
-% Verificar si la tabla está vacía
-if isempty(data)
-    warning('El archivo CSV está vacío.');
-    return;
-end
+if isempty(data), warning('CSV vacío.'); return; end
 
-% 4. Procesamiento de datos
-% Asumimos que la columna 1 es 'Time' y la columna 2 es 'Radiation'
-% Extraemos los datos crudos
-raw_time = data{:, 1}; % Columna de tiempo (HH:MM:SS)
-radiation_vals = data{:, 2}; % Columna de radiación
+raw_time = data{:, 1}; 
+val_rad = data{:, 2}; 
 
-% Convertir la hora (string) a datetime de MATLAB
-% Concatenamos la fecha del nombre del archivo con la hora del CSV para tener un eje X real
-time_str = string(raw_time);
-full_datetime_str = target_date + " " + time_str;
+% Tiempo
+t = datetime(target_date + " " + string(raw_time), 'InputFormat', 'yyyy_MM_dd HH:mm:ss');
+t_start = datetime(target_date + " 00:00:00", 'InputFormat', 'yyyy_MM_dd HH:mm:ss');
+t_end   = datetime(target_date + " 23:59:59", 'InputFormat', 'yyyy_MM_dd HH:mm:ss');
 
-% Formato de entrada: YYYY_MM_DD HH:mm:ss
-t = datetime(full_datetime_str, 'InputFormat', 'yyyy_MM_dd HH:mm:ss');
+% Limpieza (Negativos a 0)
+val_rad(val_rad < 0) = 0;
 
-% 5. Graficación
-% Guardamos el handle en 'fig' para poder guardarlo después
-fig = figure('Name', 'Análisis de Radiación Solar', 'Color', 'w');
-
-plot(t, radiation_vals, 'LineWidth', 1.5, 'Color', '#D95319'); % Color naranja quemado
-
-% Formato de Ejes
-title(['Perfil de Radiación Solar - ', strrep(target_date, '_', '-')]);
-xlabel('Hora del día');
-ylabel('Radiación (W/m^2)');
-grid on;
-grid minor;
-
-% Formatear el eje X para mostrar solo horas y minutos
+% 3. Gráfico
+fig = figure('Name', 'Radiación', 'Color', 'w', 'Position', [100, 100, 1000, 600]);
+plot(t, val_rad, 'LineWidth', 1.5, 'Color', '#e67e22'); % Naranja
+title(['Radiación Solar - ', strrep(target_date, '_', '-')]);
+ylabel('Irradiancia (W/m^2)');
+xlabel('Hora');
+grid on; grid minor;
 xtickformat('HH:mm');
-xlim([min(t), max(t)]); % Ajustar límites al rango de datos
+xlim([t_start, t_end]);
 
-% 6. Estadísticas Básicas
-max_rad = max(radiation_vals);
-mean_rad = mean(radiation_vals);
+% Estadísticas visuales
+[max_val, idx] = max(val_rad);
+text(t(idx), max_val, sprintf(' Pico: %.0f W/m^2', max_val), 'VerticalAlignment', 'bottom');
 
-% Añadir anotación en el gráfico con los valores máximos
-dim = [0.15 0.8 0.3 0.1]; % Posición x, y, ancho, alto
-str = {['Máximo: ', num2str(max_rad, '%.2f'), ' W/m^2'], ...
-       ['Promedio: ', num2str(mean_rad, '%.2f'), ' W/m^2']};
-annotation('textbox', dim, 'String', str, 'FitBoxToText', 'on', ...
-           'BackgroundColor', 'white', 'FaceAlpha', 0.8);
-
-fprintf('--- Estadísticas ---\n');
-fprintf('Radiación Máxima: %.2f W/m^2\n', max_rad);
-fprintf('Radiación Promedio: %.2f W/m^2\n', mean_rad);
-
-% -------------------------------------------------------------------------
-% 7. GUARDAR IMAGEN AUTOMÁTICAMENTE
-% -------------------------------------------------------------------------
+% 4. Guardar Imagen
 img_name = [target_date, '_analisis_radiacion.png'];
-full_save_path = fullfile(script_path, img_name);
+saveas(fig, fullfile(script_path, img_name));
+fprintf('Imagen guardada: %s\n', img_name);
 
-try
-    saveas(fig, full_save_path);
-    fprintf('Imagen guardada automáticamente en: %s\n', full_save_path);
-catch err
-    warning('No se pudo guardar la imagen: %s', err.message);
+% 5. Generar Reporte de Texto
+% Calculamos energía (Wh/m2) integrando la curva
+hours_vec = hour(t) + minute(t)/60 + second(t)/3600;
+energy_wh = trapz(hours_vec, val_rad);
+
+txt_name = [target_date, '_resumen_radiacion.txt'];
+fid = fopen(fullfile(script_path, txt_name), 'w');
+
+if fid ~= -1
+    fprintf(fid, '========================================\r\n');
+    fprintf(fid, ' RESUMEN RADIACIÓN: %s\r\n', target_date);
+    fprintf(fid, '========================================\r\n\r\n');
+    fprintf(fid, '🌞 IRRADIANCIA (W/m^2):\r\n');
+    fprintf(fid, '   Pico Máximo:   %.2f\r\n', max_val);
+    fprintf(fid, '   Promedio Día:  %.2f\r\n', mean(val_rad));
+    fprintf(fid, '   Mínimo:        %.2f\r\n\r\n', min(val_rad));
+    fprintf(fid, '⚡ ENERGÍA ACUMULADA:\r\n');
+    fprintf(fid, '   Total Diaria:  %.2f Wh/m^2\r\n', energy_wh);
+    fprintf(fid, '   Horas de Luz:  %.1f h (aprox > 10 W/m^2)\r\n', sum(val_rad > 10) * (mean(diff(hours_vec))));
+    fclose(fid);
+    fprintf('Reporte guardado: %s\n', txt_name);
 end
