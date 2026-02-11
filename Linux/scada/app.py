@@ -213,5 +213,5 @@ def download_file(filename):
     return send_from_directory(LOG_DIR_BASE, filename, as_attachment=True)
 
 if __name__ == '__main__':
-    log("🚀 Servidor Web SCADA V3.0 Iniciado")
+    log("🚀 Servidor Web SCADA Iniciado")
     socketio.run(app, host='0.0.0.0', port=5000)

@@ -154,7 +154,7 @@ def on_message(client, userdata, msg):
 # =========================================================
 
 if __name__ == "__main__":
-    logging.info("--- 📝 INICIANDO LOGGER MQTT V2.0 ---")
+    logging.info("--- 📝 INICIANDO LOGGER MQTT ---")
     logging.info(f"    Directorio base: {LOG_DIR_BASE}")
     logging.info(f"    Log de sistema:  {LOG_FILE}")
 
