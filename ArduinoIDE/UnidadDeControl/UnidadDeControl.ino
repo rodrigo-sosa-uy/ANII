@@ -27,7 +27,7 @@
 #define DEBUG_MODE 0     
 
 // ⚠️ ATENCIÓN: VERIFICA QUE ESTA IP SEA LA DE TU BROKER
-#define MQTT_SERVER "192.168.1.250" 
+#define MQTT_SERVER "192.168.1.250"
 #define MQTT_PORT 1883
 #define MQTT_CLIENT_ID "Wemos_UC_SO"
 
@@ -316,7 +316,6 @@ void measureEnvironment() {
 }
 
 void measureRadiation() {
-  /*
   long adc_acc = 0;
   for (int i = 0; i < 20; i++) {
     adc_acc += ads.readADC_SingleEnded(0);
@@ -325,8 +324,7 @@ void measureRadiation() {
   float avg = (float)adc_acc / 20.0;
   float voltage = avg * PYR_GAIN;
   sysState.radiation = (voltage < 0) ? 0 : (voltage / PYR_CAL);
-  */
-  sysState.radiation = -1.0;
+
   if (DEBUG_MODE) Serial.printf("Rad: %.2f\n", sysState.radiation);
 }
 
