@@ -53,7 +53,7 @@ logging.basicConfig(
 )
 
 # Cabecera del CSV de DATOS
-HEADER_WEATHER = ['Time', 'Condition', 'Description', 'Temp(¡ãC)', 'Humidity(%)', 'Clouds(%)', 'Pressure(hPa)']
+HEADER_WEATHER = ['Time', 'Condition', 'Description', 'Temp(Â°C)', 'Humidity(%)', 'Clouds(%)', 'Pressure(hPa)']
 
 #########################################################
 ################## Funciones Principales ################
@@ -81,7 +81,7 @@ def obtener_datos_clima():
             clouds = data['clouds']['all'] 
             pressure = data['main']['pressure']
             
-            logging.info(f"Datos recibidos: {condition}, {temp}¡ãC, {hum}% Hum")
+            logging.info(f"Datos recibidos: {condition}, {temp}Â°C, {hum}% Hum")
             return [condition, description, temp, hum, clouds, pressure]
         else:
             logging.error(f"Error API: {response.status_code} - {response.text}")
